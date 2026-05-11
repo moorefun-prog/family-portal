@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>פורטל המשפחה</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Faded background -->
+  <div class="bg-collage" aria-hidden="true">
+    <div class="bg-photo bg-photo-5"><img src="assets/fg5.png" alt=""></div>
+  </div>
+
+  <!-- Side Navigation -->
+  <nav id="side-nav" class="side-nav">
+    <a class="nav-item active" data-page="home" href="#home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">בית</span>
+    </a>
+    <a class="nav-item" data-page="calendar" href="#calendar">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">פגישות</span>
+    </a>
+    <a class="nav-item" data-page="chores" href="#chores">
+      <span class="nav-icon">✅</span>
+      <span class="nav-label">משימות</span>
+    </a>
+    <a class="nav-item" data-page="media" href="#media">
+      <span class="nav-icon">📸</span>
+      <span class="nav-label">מדיה</span>
+    </a>
+    <a class="nav-item" data-page="spotify" href="#spotify">
+      <span class="nav-icon">🎵</span>
+      <span class="nav-label">מוזיקה</span>
+    </a>
+  </nav>
+
+  <header>
+    <h1 id="family-name">פורטל המשפחה</h1>
+    <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
+  </header>
+
+  <!-- Daily Song Strip -->
+  <div id="music-strip" class="music-strip">
+    <div class="music-strip-inner">
+      <div class="music-label">🎵 <span>שיר היום</span></div>
+
+      <!-- Not connected state -->
+      <div id="spotify-connect" class="spotify-connect hidden">
+        <span class="music-loading">Spotify לא מחובר —</span>
+        <a href="/auth/spotify" class="btn btn-primary btn-sm">התחבר ל-Spotify</a>
+      </div>
+
+      <!-- Player -->
+      <div id="spotify-player" class="spotify-player hidden">
+        <button id="sp-prev" class="sp-btn" title="הקודם">⏮</button>
+        <button id="sp-play" class="sp-btn sp-play-btn" title="נגן/השהה">▶</button>
+        <button id="sp-next" class="sp-btn" title="הבא">⏭</button>
+        <div class="sp-track-info">
+          <img id="sp-art" src="" alt="" class="sp-art">
+          <div class="sp-text">
+            <div id="sp-title" class="sp-title">טוען...</div>
+            <div id="sp-artist" class="sp-artist"></div>
+          </div>
+        </div>
+        <div class="sp-progress-wrap">
+          <span id="sp-pos">0:00</span>
+          <div class="sp-bar" id="sp-bar"><div class="sp-fill" id="sp-fill"></div></div>
+          <span id="sp-dur">0:00</span>
+        </div>
+        <div class="sp-volume">
+          <span>🔊</span>
+          <input type="range" id="sp-vol" min="0" max="100" value="80">
+        </div>
+      </div>
+
+      <div id="music-loading-wrap" class="music-loading">טוען Spotify...</div>
+
+      <button id="change-song-btn" class="btn btn-sm btn-secondary edit-only hidden">🔀 החלף שיר</button>
+    </div>
+    <div id="change-song-form" class="change-song-form hidden">
+      <input type="text" id="song-url-input" placeholder="הדבק קישור Spotify לשיר (open.spotify.com/track/...)">
+      <button id="song-save-btn" class="btn btn-primary btn-sm">שמור</button>
+      <button id="song-cancel-btn" class="btn btn-secondary btn-sm">ביטול</button>
+    </div>
+  </div>
+
+  <!-- Message Board (fixed left panel) -->
+  <aside id="message-board" class="message-board">
+    <div class="message-board-header">
+      <span>💬 הודעות</span>
+    </div>
+    <div class="message-scroll-wrap">
+      <div id="message-scroll" class="message-scroll"></div>
+    </div>
+    <button id="add-message-btn" class="msg-add-btn" title="הוסף הודעה">+ הודעה</button>
+  </aside>
+
+  <!-- Add Message Modal (always available) -->
+  <div id="add-message-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>💬 הודעה חדשה</h2>
+      <label>מי שולח?
+        <input type="text" id="msg-author-input" placeholder="שמך">
+      </label>
+      <label>ההודעה
+        <textarea id="msg-text-input" placeholder="כתוב הודעה..." rows="4"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button id="msg-send-btn" class="btn btn-primary">📤 שלח</button>
+        <button id="msg-cancel-btn" class="btn btn-secondary">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Messages Modal (edit mode) -->
+  <div id="manage-messages-modal" class="modal hidden">
+    <div class="modal-content" style="max-width:520px">
+      <h2>💬 ניהול הודעות</h2>
+      <div id="messages-admin-list" class="messages-admin-list"></div>
+      <div class="modal-actions" style="margin-top:1rem">
+        <button id="manage-msg-close-btn" class="btn btn-secondary">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Message Modal (edit mode) -->
+  <div id="edit-message-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>✏️ עריכת הודעה</h2>
+      <input type="hidden" id="edit-msg-id">
+      <label>מי שולח?
+        <input type="text" id="edit-msg-author" placeholder="שמך">
+      </label>
+      <label>ההודעה
+        <textarea id="edit-msg-text" placeholder="כתוב הודעה..." rows="4"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button id="edit-msg-save-btn" class="btn btn-primary">שמור</button>
+        <button id="edit-msg-cancel-btn" class="btn btn-secondary">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit mode toolbar -->
+  <div id="edit-toolbar" class="edit-toolbar hidden">
+    <span class="edit-label">מצב עריכה פעיל</span>
+    <div class="edit-toolbar-actions">
+      <button id="manage-messages-btn" class="btn btn-secondary">💬 הודעות</button>
+      <button id="save-config-btn" class="btn btn-secondary">⚙️ הגדרות משפחה</button>
+      <button id="exit-edit-btn" class="btn btn-danger">🔒 סיים עריכה</button>
+    </div>
+  </div>
+
+  <!-- Family Config Modal -->
+  <div id="config-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>הגדרות משפחה</h2>
+      <label>שם המשפחה
+        <input type="text" id="cfg-family-name" placeholder="משפחת כהן">
+      </label>
+      <label>סיסמת עריכה
+        <input type="text" id="cfg-password" placeholder="1234">
+      </label>
+      <label>מהירות שקופיות (שניות)
+        <input type="number" id="cfg-interval" min="2" max="60" value="5">
+      </label>
+      <label>שמות בני המשפחה (מופרדים בפסיק)
+        <input type="text" id="cfg-members" placeholder="אמא, אבא, ילד 1, ילד 2">
+      </label>
+      <div class="modal-actions">
+        <button id="cfg-save-btn" class="btn btn-primary">שמור</button>
+        <button id="cfg-cancel-btn" class="btn btn-secondary">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div id="page-home" class="page active">
+
+  <!-- Media Section: Photos + Videos -->
+  <section id="media-section" class="section">
+    <div class="media-row">
+
+      <!-- Photos -->
+      <div class="media-block">
+        <div class="media-block-header">
+          <h2>📸 תמונות משפחה</h2>
+        </div>
+        <div class="slideshow-container">
+          <div id="slideshow" class="slideshow">
+            <div class="slideshow-placeholder">
+              <p>📸</p>
+              <p class="subtitle">הוסף תמונות דרך מצב עריכה</p>
+            </div>
+          </div>
+          <button id="prev-btn" class="slide-nav prev hidden">&#10094;</button>
+          <button id="next-btn" class="slide-nav next hidden">&#10095;</button>
+          <div id="slide-dots" class="slide-dots"></div>
+        </div>
+        <div id="photo-edit-panel" class="edit-panel hidden">
+          <h3>ניהול תמונות</h3>
+
+          <!-- Google Photos Integration -->
+          <div id="gphoto-panel" class="gphoto-panel">
+            <div id="gphoto-status-row" class="gphoto-status-row">
+              <span id="gphoto-indicator">⏳</span>
+              <span id="gphoto-status-text">בודק...</span>
+            </div>
+            <!-- Not connected -->
+            <div id="gphoto-connect-row" class="hidden">
+              <a href="/auth/google" class="btn btn-primary btn-sm">🔗 חבר Google Photos</a>
+            </div>
+            <!-- Connected, pick album -->
+            <div id="gphoto-album-row" class="hidden">
+              <select id="gphoto-album-select" class="gphoto-select">
+                <option value="">-- טוען אלבומים... --</option>
+              </select>
+              <button id="gphoto-save-album-btn" class="btn btn-primary btn-sm">בחר</button>
+            </div>
+            <!-- Album active -->
+            <div id="gphoto-active-row" class="hidden">
+              <button id="gphoto-change-btn" class="btn btn-secondary btn-sm">🔄 שנה אלבום</button>
+              <button id="gphoto-refresh-btn" class="btn btn-secondary btn-sm">⟳ רענן</button>
+              <button id="gphoto-disconnect-btn" class="btn btn-danger btn-sm">✕ נתק</button>
+            </div>
+          </div>
+
+          <!-- Local photo upload (fallback when Google Photos not active) -->
+          <div id="local-photo-section">
+            <div id="photo-thumbnails" class="photo-thumbnails"></div>
+            <label class="btn btn-primary upload-btn" id="photo-upload-label">
+              ⬆️ העלה תמונה
+              <input type="file" id="photo-upload" accept="image/*" multiple style="display:none">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Videos -->
+      <div class="media-block">
+        <div class="media-block-header">
+          <h2>🎬 סרטונים</h2>
+          <label class="btn btn-primary btn-sm upload-btn" id="video-upload-label">
+            <span id="video-upload-text">⬆️ העלה סרטון</span>
+            <input type="file" id="video-upload" accept="video/*" style="display:none">
+          </label>
+        </div>
+        <div id="video-player-wrap" class="video-player-wrap">
+          <div class="video-placeholder">
+            <p>🎬</p>
+            <p class="subtitle">לא הועלו סרטונים עדיין</p>
+          </div>
+        </div>
+        <div id="video-list" class="video-list"></div>
+        <div id="video-edit-panel" class="edit-panel hidden">
+          <h3>ניהול סרטונים</h3>
+          <div id="video-thumbnails" class="photo-thumbnails"></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Appointments Section -->
+  <section id="appointments-section" class="section">
+    <div class="section-header">
+      <h2>📅 פגישות</h2>
+    </div>
+    <div id="appointments-grid" class="appointments-grid"></div>
+  </section>
+
+  <!-- Chores Section -->
+  <section id="chores-section" class="section">
+    <div class="section-header">
+      <h2>✅ משימות</h2>
+      <button id="clear-done-btn" class="btn btn-secondary btn-sm">מחק שעשוי</button>
+    </div>
+    <div id="chores-list" class="chores-list"></div>
+    <div id="add-chore-form" class="add-form hidden">
+      <input type="text" id="chore-title-input" placeholder="שם המשימה">
+      <select id="chore-assignee-input"></select>
+      <input type="date" id="chore-due-input">
+      <button id="chore-save-btn" class="btn btn-primary">הוסף</button>
+      <button id="chore-cancel-btn" class="btn btn-secondary">ביטול</button>
+    </div>
+    <button id="add-chore-btn" class="btn btn-primary add-btn">+ הוסף משימה</button>
+  </section>
+
+  </div><!-- /page-home -->
+
+  <!-- CALENDAR PAGE -->
+  <div id="page-calendar" class="page">
+    <section class="section">
+      <div class="section-header">
+        <h2>📅 לוח פגישות</h2>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <button id="cal-next-btn" class="btn btn-secondary btn-sm">חודש הבא</button>
+          <span id="cal-month-label" class="cal-month-label"></span>
+          <button id="cal-prev-btn" class="btn btn-secondary btn-sm">חודש קודם</button>
+        </div>
+      </div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+      <div id="cal-day-detail" class="cal-day-detail hidden">
+        <h3 id="cal-day-title"></h3>
+        <div id="cal-day-appointments"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CHORES FULL PAGE -->
+  <div id="page-chores" class="page">
+    <section class="section">
+      <div class="section-header">
+        <h2>✅ כל המשימות</h2>
+        <div style="display:flex;gap:.5rem">
+          <button id="add-chore-btn2" class="btn btn-primary btn-sm">+ הוסף משימה</button>
+          <button id="clear-done-btn2" class="btn btn-secondary btn-sm">מחק שעשוי</button>
+        </div>
+      </div>
+      <div id="chores-list2" class="chores-list"></div>
+      <div id="add-chore-form2" class="add-form hidden">
+        <input type="text" id="chore-title-input2" placeholder="שם המשימה">
+        <select id="chore-assignee-input2"></select>
+        <input type="date" id="chore-due-input2">
+        <button id="chore-save-btn2" class="btn btn-primary">הוסף</button>
+        <button id="chore-cancel-btn2" class="btn btn-secondary">ביטול</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- MEDIA FULL PAGE -->
+  <div id="page-media" class="page">
+    <section class="section">
+      <div class="section-header">
+        <h2>📸 גלריית מדיה</h2>
+      </div>
+      <div id="media-full-grid" class="media-full-grid"></div>
+    </section>
+  </div>
+
+  <!-- SPOTIFY FULL PAGE -->
+  <div id="page-spotify" class="page">
+    <section class="section">
+      <div class="section-header">
+        <h2>🎵 נגן מוזיקה</h2>
+        <button id="change-song-btn2" class="btn btn-secondary btn-sm edit-only hidden">🔀 החלף שיר</button>
+      </div>
+      <div id="spotify-full-wrap" class="spotify-full-wrap">
+        <div class="sp-full-art-wrap">
+          <img id="sp-full-art" src="" alt="" class="sp-full-art">
+        </div>
+        <div class="sp-full-info">
+          <div id="sp-full-title" class="sp-full-title">טוען...</div>
+          <div id="sp-full-artist" class="sp-full-artist"></div>
+          <div class="sp-full-controls">
+            <button id="sp-full-next" class="sp-full-btn" title="הבא">⏭</button>
+            <button id="sp-full-play" class="sp-full-play-btn" title="נגן/השהה">▶</button>
+            <button id="sp-full-prev" class="sp-full-btn" title="הקודם">⏮</button>
+          </div>
+          <div class="sp-full-progress">
+            <span id="sp-full-pos">0:00</span>
+            <div class="sp-bar" id="sp-full-bar"><div class="sp-fill" id="sp-full-fill"></div></div>
+            <span id="sp-full-dur">0:00</span>
+          </div>
+          <div class="sp-volume">
+            <span>🔊</span>
+            <input type="range" id="sp-full-vol" min="0" max="100" value="80">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p>פורטל המשפחה ❤️</p>
+  </footer>
+
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

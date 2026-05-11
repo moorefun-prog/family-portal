@@ -1,0 +1,10 @@
+node_modules/
+.env
+.claude/
+.superpowers/
+
+# Live data — never commit tokens or uploads
+data/google-token.json
+data/spotify-token.json
+data/photos/*
+!data/photos/.gitkeep
