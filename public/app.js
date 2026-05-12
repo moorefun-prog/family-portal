@@ -129,13 +129,21 @@ async function loadDailySong() {
 
 async function playSong() {
   const song = await api('GET', '/api/daily-song');
-  if (!song?.trackId || !spotifyDeviceId) return;
+  if (!spotifyDeviceId) return;
+
+  // Support both playlist and single track
+  const contextUri = song?.playlistId
+    ? `spotify:playlist:${song.playlistId}`
+    : song?.trackId
+      ? null  // legacy single-track — skip, user should set a playlist
+      : null;
+  if (!contextUri) return;
 
   const { access_token } = await api('GET', '/api/spotify-token');
   await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uris: [`spotify:track:${song.trackId}`] })
+    body: JSON.stringify({ context_uri: contextUri })
   });
 }
 
@@ -214,11 +222,10 @@ document.getElementById('song-cancel-btn').addEventListener('click', () => {
 });
 document.getElementById('song-save-btn').addEventListener('click', async () => {
   const raw = document.getElementById('song-url-input').value.trim();
-  const match = raw.match(/track\/([A-Za-z0-9]+)/);
-  if (!match) return alert('קישור לא תקין — השתמש בקישור מ-Spotify לשיר');
-  const trackId = match[1];
-  const song = { trackId, title: '', artist: '', date: new Date().toISOString().slice(0, 10) };
-  await api('POST', '/api/daily-song', song);
+  const match = raw.match(/playlist\/([A-Za-z0-9]+)/);
+  if (!match) return alert('קישור לא תקין — השתמש בקישור לפלייליסט מ-Spotify');
+  const playlistId = match[1];
+  await api('POST', '/api/daily-song', { playlistId, date: new Date().toISOString().slice(0, 10) });
   document.getElementById('change-song-form').classList.add('hidden');
   document.getElementById('song-url-input').value = '';
   await playSong();
