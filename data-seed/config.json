@@ -2,5 +2,7 @@
   "familyName": "משפחת מור שחר",
   "members": ["מיקי", "רבקה", "יהונתן", "הראל", "הרשי"],
   "editPassword": "1234",
-  "photoInterval": 5
+  "adminPassword": "admin123",
+  "photoInterval": 5,
+  "passwords": {}
 }

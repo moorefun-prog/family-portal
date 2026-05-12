@@ -10,13 +10,120 @@ let slideTimer = null;
 let editMode = false;
 let photoSource = 'local';   // 'local' | 'google'
 let gphotoStatus = { connected: false, albumId: null, albumName: '' };
+let currentUser = null;   // logged-in name, 'guest', or 'admin'
+let userRole    = null;   // 'admin' | 'member' | 'guest'
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 async function init() {
-  await Promise.all([loadConfig(), loadPhotos(), loadAppointments(), loadChores(), loadMessages()]);
+  // Config must load first — login modal needs family name + member list
+  await loadConfig();
+  populateLoginModal();
+
+  // Restore session if saved
+  const session = getSession();
+  if (session) {
+    currentUser = session.name;
+    userRole    = session.role;
+    startPortal();
+  } else {
+    document.getElementById('login-modal').classList.remove('hidden');
+  }
+}
+
+async function startPortal() {
+  document.getElementById('login-modal').classList.add('hidden');
+  if (userRole === 'guest') document.body.classList.add('guest-mode');
+  renderUserPill();
+  if (userRole === 'admin') enterEditMode();
+
+  await Promise.all([loadPhotos(), loadAppointments(), loadChores(), loadMessages()]);
   await Promise.all([renderSpotifyEmbed(), renderYouTubeEmbed()]);
   initRouter();
+}
+
+// ── Session ────────────────────────────────────────────────────────────────
+
+function getSession() {
+  try {
+    const s = localStorage.getItem('fpSession') || sessionStorage.getItem('fpSession');
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+
+function saveSession(name, role, remember) {
+  const data = JSON.stringify({ name, role });
+  (remember ? localStorage : sessionStorage).setItem('fpSession', data);
+}
+
+function clearSession() {
+  localStorage.removeItem('fpSession');
+  sessionStorage.removeItem('fpSession');
+}
+
+// ── Login modal ────────────────────────────────────────────────────────────
+
+function populateLoginModal() {
+  document.getElementById('login-family-name').textContent = config.familyName || 'פורטל המשפחה';
+  const sel = document.getElementById('login-name');
+  const members = config.members || [];
+  sel.innerHTML = '<option value="">בחר שם...</option>' +
+    members.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('') +
+    '<option value="admin">מנהל</option>';
+}
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const name     = document.getElementById('login-name').value;
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const errEl    = document.getElementById('login-error');
+
+  if (!name) { errEl.textContent = 'אנא בחר שם'; errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+
+  const res = await api('POST', '/api/login', { name, password });
+  if (!res.ok) {
+    errEl.textContent = 'סיסמה שגויה, נסה שנית';
+    errEl.classList.remove('hidden');
+    document.getElementById('login-password').value = '';
+    return;
+  }
+
+  currentUser = name;
+  userRole    = res.role;
+  saveSession(name, res.role, remember);
+  startPortal();
+});
+
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-btn').click();
+});
+
+document.getElementById('guest-btn').addEventListener('click', () => {
+  currentUser = 'guest';
+  userRole    = 'guest';
+  // Guest sessions are never remembered
+  sessionStorage.setItem('fpSession', JSON.stringify({ name: 'guest', role: 'guest' }));
+  startPortal();
+});
+
+// ── User pill & logout ─────────────────────────────────────────────────────
+
+function renderUserPill() {
+  const pill = document.getElementById('user-pill');
+  if (!pill) return;
+  const label = userRole === 'guest' ? 'אורח 👁' :
+                userRole === 'admin' ? '⚙️ מנהל' :
+                currentUser;
+  pill.innerHTML =
+    `<span class="user-pill-name">${esc(label)}</span>` +
+    `<button class="user-pill-switch" onclick="logout()">יציאה</button>`;
+  pill.classList.remove('hidden');
+}
+
+function logout() {
+  clearSession();
+  location.reload();
 }
 
 async function loadConfig() {
@@ -311,8 +418,10 @@ function renderAppointments() {
             <button class="btn btn-secondary btn-sm" onclick="hideApptForm('${safeid(member)}')">ביטול</button>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm add-appt-btn"
-          onclick="showApptForm('${safeid(member)}')">+ הוסף פגישה</button>
+        ${(userRole === 'admin' || (!editMode && currentUser === member) || (editMode && userRole !== 'guest'))
+          ? `<button class="btn btn-primary btn-sm add-appt-btn"
+              onclick="showApptForm('${safeid(member)}')">+ הוסף פגישה</button>`
+          : ''}
       </div>`;
   }).join('');
 
@@ -425,8 +534,12 @@ async function clearDoneChores() {
 }
 
 document.getElementById('add-chore-btn').addEventListener('click', () => {
+  if (userRole === 'guest') return;
   document.getElementById('add-chore-form').classList.remove('hidden');
   document.getElementById('add-chore-btn').classList.add('hidden');
+  // Pre-select logged-in user as assignee
+  const sel = document.getElementById('chore-assignee-input');
+  if (userRole === 'member' && currentUser) sel.value = currentUser;
   document.getElementById('chore-title-input').focus();
 });
 
@@ -456,6 +569,8 @@ document.getElementById('clear-done-btn').addEventListener('click', clearDoneCho
 
 document.getElementById('edit-btn').addEventListener('click', async () => {
   if (editMode) return;
+  if (userRole === 'guest') return;
+  if (userRole === 'admin') { enterEditMode(); return; } // admin already authed
   const pwd = prompt('סיסמה:');
   if (pwd === null) return;
   const { ok } = await api('POST', '/api/auth', { password: pwd });
@@ -468,20 +583,24 @@ document.getElementById('exit-edit-btn').addEventListener('click', exitEditMode)
 function enterEditMode() {
   editMode = true;
   document.body.classList.add('edit-mode');
+  document.body.classList.remove('guest-mode');
   document.getElementById('edit-toolbar').classList.remove('hidden');
   document.getElementById('photo-edit-panel').classList.remove('hidden');
   renderPhotoThumbs();
   renderGPhotoPanel();
   revealEditControls();
+  renderAppointments(); // re-render so add buttons appear for all columns
 }
 
 function exitEditMode() {
   editMode = false;
   document.body.classList.remove('edit-mode');
+  if (userRole === 'guest') document.body.classList.add('guest-mode');
   document.getElementById('edit-toolbar').classList.add('hidden');
   document.getElementById('photo-edit-panel').classList.add('hidden');
   document.getElementById('add-chore-form').classList.add('hidden');
   document.querySelectorAll('.edit-only').forEach(el => el.classList.add('hidden'));
+  renderAppointments(); // re-render so add buttons reflect role
 }
 
 function revealEditControls() {
@@ -495,21 +614,56 @@ document.getElementById('save-config-btn').addEventListener('click', () => {
   document.getElementById('cfg-password').value = config.editPassword || '';
   document.getElementById('cfg-interval').value = config.photoInterval || 5;
   document.getElementById('cfg-members').value = (config.members || []).join(', ');
+  renderPasswordFields();
   document.getElementById('config-modal').classList.remove('hidden');
 });
+
+function renderPasswordFields() {
+  const members = config.members || [];
+  const passwords = config.passwords || {};
+  const list = document.getElementById('cfg-passwords-list');
+  list.innerHTML = members.map(m => `
+    <div class="cfg-password-row">
+      <label class="cfg-password-label">${esc(m)}</label>
+      <input type="password" class="cfg-password-input" data-member="${esc(m)}"
+        value="${esc(passwords[m] || '')}" placeholder="ללא סיסמה" autocomplete="new-password">
+      <button type="button" class="btn-icon cfg-pwd-toggle" onclick="togglePwdVisibility(this)" title="הצג">👁</button>
+    </div>`).join('') +
+    `<div class="cfg-password-row">
+      <label class="cfg-password-label">⚙️ מנהל</label>
+      <input type="password" id="cfg-admin-password" data-member="admin"
+        value="${esc(config.adminPassword || '')}" placeholder="סיסמת מנהל" autocomplete="new-password">
+      <button type="button" class="btn-icon cfg-pwd-toggle" onclick="togglePwdVisibility(this)" title="הצג">👁</button>
+    </div>`;
+}
+
+function togglePwdVisibility(btn) {
+  const input = btn.previousElementSibling;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
 
 document.getElementById('cfg-cancel-btn').addEventListener('click', () => {
   document.getElementById('config-modal').classList.add('hidden');
 });
 
 document.getElementById('cfg-save-btn').addEventListener('click', async () => {
-  const familyName = document.getElementById('cfg-family-name').value.trim();
-  const editPassword = document.getElementById('cfg-password').value.trim();
+  const familyName    = document.getElementById('cfg-family-name').value.trim();
+  const editPassword  = document.getElementById('cfg-password').value.trim();
   const photoInterval = parseInt(document.getElementById('cfg-interval').value) || 5;
-  const members = document.getElementById('cfg-members').value
+  const members       = document.getElementById('cfg-members').value
     .split(',').map(s => s.trim()).filter(Boolean);
 
-  config = { familyName, members, editPassword, photoInterval };
+  // Collect member passwords
+  const passwords = {};
+  document.querySelectorAll('.cfg-password-input').forEach(input => {
+    const member = input.dataset.member;
+    const val    = input.value.trim();
+    if (val) passwords[member] = val;
+  });
+  const adminPassword = (document.getElementById('cfg-admin-password')?.value || '').trim()
+                        || config.adminPassword || 'admin123';
+
+  config = { ...config, familyName, members, editPassword, adminPassword, photoInterval, passwords };
   await api('POST', '/api/config', config);
 
   document.getElementById('config-modal').classList.add('hidden');
@@ -702,6 +856,17 @@ function formatMsgTime(ts) {
 // ── Add message modal ──────────────────────────────────────────────────────
 
 document.getElementById('add-message-btn').addEventListener('click', () => {
+  if (userRole === 'guest') return;
+  const authorInput = document.getElementById('msg-author-input');
+  const authorRow   = document.getElementById('msg-author-row');
+  if (userRole === 'member' || userRole === 'admin') {
+    const label = userRole === 'admin' ? 'מנהל' : currentUser;
+    authorInput.value = label;
+    if (authorRow) authorRow.classList.add('hidden');
+  } else {
+    authorInput.value = '';
+    if (authorRow) authorRow.classList.remove('hidden');
+  }
   document.getElementById('add-message-modal').classList.remove('hidden');
   document.getElementById('msg-text-input').focus();
 });

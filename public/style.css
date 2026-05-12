@@ -68,6 +68,209 @@ header, .edit-toolbar, .section, #media-section, footer, .modal {
   z-index: 1;
 }
 
+/* ── Login modal ─────────────────────────────────────────────────────────── */
+
+.login-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d2d45 0%, #1a5c8f 100%);
+}
+.login-modal.hidden { display: none; }
+
+.login-box {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  padding: 2.5rem 2rem;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  animation: modalIn 0.3s ease;
+}
+
+.login-logo { font-size: 3rem; margin-bottom: 0.5rem; line-height: 1; }
+
+.login-box h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-form select,
+.login-form input[type="password"] {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: white;
+  text-align: right;
+}
+.login-form select:focus,
+.login-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26,143,209,0.12);
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: -0.25rem 0;
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  justify-content: center;
+}
+
+.login-submit { width: 100%; padding: 0.7rem; font-size: 1rem; font-weight: 700; }
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-guest { width: 100%; }
+
+/* ── Header actions ──────────────────────────────────────────────────────── */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ── User pill ───────────────────────────────────────────────────────────── */
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.45);
+  border-radius: 50px;
+  padding: 0.3rem 0.85rem;
+  color: white;
+  font-size: 0.85rem;
+  backdrop-filter: blur(4px);
+}
+.user-pill-name { font-weight: 700; }
+.user-pill-switch {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'Heebo', sans-serif;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+.user-pill-switch:hover { color: white; }
+
+/* ── Guest mode — hide interactive elements ──────────────────────────────── */
+
+body.guest-mode .add-appt-btn,
+body.guest-mode #add-message-btn,
+body.guest-mode #add-chore-btn,
+body.guest-mode #add-chore-btn2,
+body.guest-mode .chore-checkbox,
+body.guest-mode .edit-btn { display: none !important; }
+
+/* ── Config modal — password fields ─────────────────────────────────────── */
+
+.cfg-passwords-section {
+  border-top: 1.5px solid var(--border);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+.cfg-passwords-section h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+.cfg-passwords-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+.cfg-passwords-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cfg-password-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cfg-password-label {
+  width: 80px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-align: right;
+}
+.cfg-password-input {
+  flex: 1;
+  padding: 0.35rem 0.7rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.88rem;
+}
+.cfg-pwd-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.cfg-pwd-toggle:hover { opacity: 1; }
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* ── Header ────────────────────────────────────────────────────────────── */
 
 header {

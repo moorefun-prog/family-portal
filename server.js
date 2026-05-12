@@ -72,15 +72,40 @@ app.post('/api/daily-song', (req, res) => {
   res.json({ ok: true });
 });
 
-// Auth
+// Auth (edit mode)
 app.post('/api/auth', (req, res) => {
   const config = readJSON('config.json');
   res.json({ ok: req.body.password === config.editPassword });
 });
 
+// Login
+app.post('/api/login', (req, res) => {
+  const { name, password } = req.body;
+  const config = readJSON('config.json');
+
+  // Admin account
+  if (name === 'admin') {
+    const adminPwd = config.adminPassword || 'admin123';
+    return res.json(password === adminPwd ? { ok: true, role: 'admin' } : { ok: false, error: 'wrong_password' });
+  }
+
+  // Family member
+  if (!config.members.includes(name)) return res.json({ ok: false, error: 'unknown_user' });
+  const stored = (config.passwords || {})[name];
+  // No password set yet → any input accepted (first-run convenience)
+  if (stored && stored !== password) return res.json({ ok: false, error: 'wrong_password' });
+  res.json({ ok: true, role: 'member' });
+});
+
 // Config
 app.get('/api/config', (req, res) => res.json(readJSON('config.json')));
-app.post('/api/config', (req, res) => { writeJSON('config.json', req.body); res.json({ ok: true }); });
+app.post('/api/config', (req, res) => {
+  // Merge with existing so passwords set by admin are never wiped
+  let existing = {};
+  try { existing = readJSON('config.json'); } catch {}
+  writeJSON('config.json', { ...existing, ...req.body });
+  res.json({ ok: true });
+});
 
 // Appointments
 app.get('/api/appointments', (req, res) => res.json(readJSON('appointments.json')));

@@ -39,9 +39,34 @@
     </a>
   </nav>
 
+  <!-- Login modal — blocks portal until authenticated -->
+  <div id="login-modal" class="login-modal">
+    <div class="login-box">
+      <div class="login-logo">🏠</div>
+      <h2 id="login-family-name">פורטל המשפחה</h2>
+      <p class="login-subtitle">ברוכים הבאים!</p>
+      <div class="login-form">
+        <select id="login-name">
+          <option value="">בחר שם...</option>
+        </select>
+        <input type="password" id="login-password" placeholder="סיסמה" autocomplete="current-password">
+        <p id="login-error" class="login-error hidden">סיסמה שגויה, נסה שנית</p>
+        <label class="login-remember">
+          <input type="checkbox" id="login-remember"> זכור אותי במכשיר זה
+        </label>
+        <button id="login-btn" class="btn btn-primary login-submit">כניסה</button>
+        <div class="login-divider"><span>או</span></div>
+        <button id="guest-btn" class="btn btn-secondary login-guest">כניסה כאורח 👁</button>
+      </div>
+    </div>
+  </div>
+
   <header>
     <h1 id="family-name">פורטל המשפחה</h1>
-    <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
+    <div class="header-actions">
+      <span id="user-pill" class="user-pill hidden"></span>
+      <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
+    </div>
   </header>
 
   <!-- Message Board (fixed left panel on desktop / in-flow ticker on mobile) -->
@@ -85,7 +110,7 @@
   <div id="add-message-modal" class="modal hidden">
     <div class="modal-content">
       <h2>💬 הודעה חדשה</h2>
-      <label>מי שולח?
+      <label id="msg-author-row">מי שולח?
         <input type="text" id="msg-author-input" placeholder="שמך">
       </label>
       <label>ההודעה
@@ -153,6 +178,11 @@
       <label>שמות בני המשפחה (מופרדים בפסיק)
         <input type="text" id="cfg-members" placeholder="אמא, אבא, ילד 1, ילד 2">
       </label>
+      <div class="cfg-passwords-section">
+        <h3>סיסמאות כניסה</h3>
+        <p class="cfg-passwords-note">השאר ריק = כניסה ללא סיסמה</p>
+        <div id="cfg-passwords-list" class="cfg-passwords-list"></div>
+      </div>
       <div class="modal-actions">
         <button id="cfg-save-btn" class="btn btn-primary">שמור</button>
         <button id="cfg-cancel-btn" class="btn btn-secondary">ביטול</button>
