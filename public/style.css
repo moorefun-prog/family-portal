@@ -203,14 +203,18 @@ header, .edit-toolbar, .section, #media-section, footer, .modal {
 }
 .user-pill-switch:hover { color: white; }
 
+/* ── Edit button — admin only ────────────────────────────────────────────── */
+
+.edit-btn { display: none !important; }
+body.is-admin .edit-btn { display: inline-flex !important; }
+
 /* ── Guest mode — hide interactive elements ──────────────────────────────── */
 
 body.guest-mode .add-appt-btn,
 body.guest-mode #add-message-btn,
 body.guest-mode #add-chore-btn,
 body.guest-mode #add-chore-btn2,
-body.guest-mode .chore-checkbox,
-body.guest-mode .edit-btn { display: none !important; }
+body.guest-mode .chore-checkbox { display: none !important; }
 
 /* ── Config modal — password fields ─────────────────────────────────────── */
 

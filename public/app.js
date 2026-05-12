@@ -34,6 +34,7 @@ async function init() {
 async function startPortal() {
   document.getElementById('login-modal').classList.add('hidden');
   if (userRole === 'guest') document.body.classList.add('guest-mode');
+  if (userRole === 'admin') document.body.classList.add('is-admin');
   renderUserPill();
   if (userRole === 'admin') enterEditMode();
 
