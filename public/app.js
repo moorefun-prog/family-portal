@@ -812,23 +812,22 @@ function renderMessageBoard() {
       <div class="msg-time">${formatMsgTime(m.timestamp)}</div>
     </div>`).join('');
 
-  // Duplicate for seamless infinite scroll
-  scroll.innerHTML = cardHtml + cardHtml;
-
   if (window.innerWidth <= 680) {
-    // Horizontal ticker: measure real pixel width, then animate at a fixed speed (px/s)
+    // Repeat 6× so content always fills screen — no blank gaps between loops
+    const REPEATS = 6;
+    scroll.innerHTML = Array(REPEATS).fill(cardHtml).join('');
     scroll.style.animation = 'none';
     requestAnimationFrame(() => {
-      const halfPx = scroll.scrollWidth / 2;
-      const SPEED = 50; // pixels per second — lower = slower
-      const dur = Math.max(4, halfPx / SPEED);
+      const segmentPx = scroll.scrollWidth / REPEATS;
+      const dur = Math.max(1, segmentPx / 50); // 50px/s
       let ks = document.getElementById('_ticker_ks');
       if (!ks) { ks = document.createElement('style'); ks.id = '_ticker_ks'; document.head.appendChild(ks); }
-      ks.textContent = `@keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${halfPx}px)} }`;
+      ks.textContent = `@keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${segmentPx}px)} }`;
       scroll.style.animation = `tickerScroll ${dur}s linear infinite`;
     });
   } else {
-    // Vertical scroller: ~7s per message, min 14s
+    // Vertical scroller: duplicate once for seamless loop
+    scroll.innerHTML = cardHtml + cardHtml;
     const dur = Math.max(14, messages.length * 7);
     scroll.style.animation = `msgScrollUp ${dur}s linear infinite`;
   }
