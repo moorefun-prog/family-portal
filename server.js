@@ -5,10 +5,6 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
-
 const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI;
@@ -20,7 +16,6 @@ const DATA_DIR = path.join(__dirname, 'data');
 const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
 const VIDEOS_DIR = path.join(DATA_DIR, 'videos');
 const AVATARS_DIR = path.join(DATA_DIR, 'avatars');
-const SPOTIFY_TOKENS_DIR = path.join(DATA_DIR, 'spotify-tokens');
 const SEED_DIR = path.join(__dirname, 'data-seed');
 
 function initDataDir() {
@@ -28,8 +23,6 @@ function initDataDir() {
   if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
   if (!fs.existsSync(VIDEOS_DIR)) fs.mkdirSync(VIDEOS_DIR, { recursive: true });
   if (!fs.existsSync(AVATARS_DIR)) fs.mkdirSync(AVATARS_DIR, { recursive: true });
-  if (!fs.existsSync(SPOTIFY_TOKENS_DIR)) fs.mkdirSync(SPOTIFY_TOKENS_DIR, { recursive: true });
-
   const files = ['config.json', 'appointments.json', 'chores.json', 'messages.json'];
   for (const file of files) {
     const dest = path.join(DATA_DIR, file);
@@ -81,141 +74,9 @@ const uploadVideo = multer({
   }
 });
 
-// ── Spotify OAuth (per-user) ───────────────────────────────────────────────
-
-const SPOTIFY_SCOPES = [
-  'streaming',
-  'user-read-email',
-  'user-read-private',
-  'user-read-playback-state',
-  'user-modify-playback-state'
-].join(' ');
-
-// Sanitise a family-member name so it's safe as a filename
-function sanitizeUser(user) {
-  return String(user).replace(/[^a-zA-Z0-9א-ת_-]/g, '_').slice(0, 64);
-}
-
-function readUserSpotifyToken(user) {
-  try {
-    return JSON.parse(fs.readFileSync(
-      path.join(SPOTIFY_TOKENS_DIR, `${sanitizeUser(user)}.json`), 'utf8'
-    ));
-  } catch { return null; }
-}
-
-function writeUserSpotifyToken(user, data) {
-  fs.writeFileSync(
-    path.join(SPOTIFY_TOKENS_DIR, `${sanitizeUser(user)}.json`),
-    JSON.stringify(data, null, 2)
-  );
-}
-
-async function refreshAccessToken(refreshToken) {
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken
-    })
-  });
-  return res.json();
-}
-
-// Step 1: redirect to Spotify login — encode username in state
-app.get('/auth/spotify', (req, res) => {
-  const user  = req.query.user || '';
-  const state = Buffer.from(JSON.stringify({ user })).toString('base64');
-  const params = new URLSearchParams({
-    client_id:     SPOTIFY_CLIENT_ID,
-    response_type: 'code',
-    redirect_uri:  SPOTIFY_REDIRECT_URI,
-    scope:         SPOTIFY_SCOPES,
-    show_dialog:   'false',
-    state
-  });
-  res.redirect(`https://accounts.spotify.com/authorize?${params}`);
-});
-
-// Step 2: Spotify calls back — decode state → save per-user token
-app.get('/auth/spotify/callback', async (req, res) => {
-  const { code, error, state } = req.query;
-  if (error || !code) return res.send(`<p>שגיאה: ${error || 'no code'}</p>`);
-
-  // Decode the username we encoded in Step 1
-  let user = '';
-  try {
-    const decoded = JSON.parse(Buffer.from(state || '', 'base64').toString());
-    user = decoded.user || '';
-  } catch {}
-
-  const resp = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')
-    },
-    body: new URLSearchParams({
-      grant_type:   'authorization_code',
-      code,
-      redirect_uri: SPOTIFY_REDIRECT_URI
-    })
-  });
-  const data = await resp.json();
-  if (data.error) return res.send(`<p>שגיאה: ${data.error_description}</p>`);
-
-  const tokenData = {
-    access_token:  data.access_token,
-    refresh_token: data.refresh_token,
-    expires_at:    Date.now() + (data.expires_in - 60) * 1000
-  };
-
-  if (user) {
-    writeUserSpotifyToken(user, tokenData);
-  }
-
-  const userLabel = user ? `<p>מחובר בתור: <strong>${user}</strong></p>` : '';
-  res.send(`<!DOCTYPE html><html lang="he" dir="rtl">
-    <head><meta charset="UTF-8"><title>Spotify מחובר</title>
-    <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#eaf5fd;}
-    .box{text-align:center;padding:2rem;background:white;border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,.1);}
-    h2{color:#1a8fd1;}p{color:#555;}</style></head>
-    <body><div class="box"><h2>✅ Spotify מחובר בהצלחה!</h2>
-    ${userLabel}
-    <a href="/">חזרה לפורטל</a></div></body></html>`);
-});
-
-// Provide fresh access token to frontend — per-user
-app.get('/api/spotify-token', async (req, res) => {
-  const user = req.query.user || '';
-  if (!user) return res.json({ ok: false, error: 'missing_user' });
-
-  const token = readUserSpotifyToken(user);
-  if (!token) return res.json({ ok: false, error: 'not_connected' });
-
-  if (Date.now() > token.expires_at) {
-    const refreshed = await refreshAccessToken(token.refresh_token);
-    if (refreshed.error) return res.json({ ok: false, error: refreshed.error });
-    token.access_token = refreshed.access_token;
-    token.expires_at   = Date.now() + (refreshed.expires_in - 60) * 1000;
-    if (refreshed.refresh_token) token.refresh_token = refreshed.refresh_token;
-    writeUserSpotifyToken(user, token);
-  }
-
-  res.json({ ok: true, access_token: token.access_token });
-});
-
-// Check connection status — per-user
-app.get('/api/spotify-status', (req, res) => {
-  const user = req.query.user || '';
-  if (!user) return res.json({ connected: false });
-  const token = readUserSpotifyToken(user);
-  res.json({ connected: !!token });
-});
+// ── Spotify ────────────────────────────────────────────────────────────────
+// Playlist ID is stored in daily-song.json; the frontend renders a Spotify
+// embed iframe — no OAuth or Premium required.
 
 // Daily song
 app.get('/api/daily-song', (req, res) => {

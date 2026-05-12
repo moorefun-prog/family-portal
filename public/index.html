@@ -40,10 +40,7 @@
 
   <header>
     <h1 id="family-name">פורטל המשפחה</h1>
-    <div class="header-actions">
-      <span id="user-pill" class="user-pill hidden"></span>
-      <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
-    </div>
+    <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
   </header>
 
   <!-- Message Board (fixed left panel on desktop / in-flow ticker on mobile) -->
@@ -57,48 +54,29 @@
     <button id="add-message-btn" class="msg-add-btn" title="הוסף הודעה">+ הודעה</button>
   </aside>
 
-  <!-- Daily Song Strip -->
+  <!-- Music Strip — Spotify embed iframe -->
   <div id="music-strip" class="music-strip">
-    <div class="music-strip-inner">
+    <div class="music-strip-header">
       <div class="music-label">🎵 <span>הפלייליסט שלנו</span></div>
-
-      <!-- Not connected state -->
-      <div id="spotify-connect" class="spotify-connect hidden">
-        <span class="music-loading">Spotify לא מחובר —</span>
-        <a id="spotify-connect-link" href="#" class="btn btn-primary btn-sm">התחבר ל-Spotify</a>
-      </div>
-
-      <!-- Player -->
-      <div id="spotify-player" class="spotify-player hidden">
-        <button id="sp-prev" class="sp-btn" title="הקודם">⏮</button>
-        <button id="sp-play" class="sp-btn sp-play-btn" title="נגן/השהה">▶</button>
-        <button id="sp-next" class="sp-btn" title="הבא">⏭</button>
-        <div class="sp-track-info">
-          <img id="sp-art" src="" alt="" class="sp-art">
-          <div class="sp-text">
-            <div id="sp-title" class="sp-title">טוען...</div>
-            <div id="sp-artist" class="sp-artist"></div>
-          </div>
-        </div>
-        <div class="sp-progress-wrap">
-          <span id="sp-pos">0:00</span>
-          <div class="sp-bar" id="sp-bar"><div class="sp-fill" id="sp-fill"></div></div>
-          <span id="sp-dur">0:00</span>
-        </div>
-        <div class="sp-volume">
-          <span>🔊</span>
-          <input type="range" id="sp-vol" min="0" max="100" value="80">
-        </div>
-      </div>
-
-      <div id="music-loading-wrap" class="music-loading">טוען Spotify...</div>
-
-      <button id="change-song-btn" class="btn btn-sm btn-secondary edit-only hidden">🔀 החלף שיר</button>
+      <button id="change-song-btn" class="btn btn-sm btn-secondary edit-only hidden">🔀 החלף פלייליסט</button>
     </div>
     <div id="change-song-form" class="change-song-form hidden">
       <input type="text" id="song-url-input" placeholder="הדבק קישור לפלייליסט (open.spotify.com/playlist/...)">
       <button id="song-save-btn" class="btn btn-primary btn-sm">שמור</button>
       <button id="song-cancel-btn" class="btn btn-secondary btn-sm">ביטול</button>
+    </div>
+    <div id="spotify-embed-wrap" class="spotify-embed-wrap">
+      <iframe id="spotify-embed-strip"
+        src=""
+        width="100%"
+        height="152"
+        frameborder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy">
+      </iframe>
+      <div id="spotify-no-playlist" class="spotify-no-playlist hidden">
+        <span>אין פלייליסט — הפעל מצב עריכה כדי להוסיף 🎵</span>
+      </div>
     </div>
   </div>
 
@@ -349,30 +327,20 @@
   <div id="page-spotify" class="page">
     <section class="section">
       <div class="section-header">
-        <h2>🎵 נגן מוזיקה</h2>
-        <button id="change-song-btn2" class="btn btn-secondary btn-sm edit-only hidden">🔀 החלף שיר</button>
+        <h2>🎵 הפלייליסט שלנו</h2>
       </div>
       <div id="spotify-full-wrap" class="spotify-full-wrap">
-        <div class="sp-full-art-wrap">
-          <img id="sp-full-art" src="" alt="" class="sp-full-art">
-        </div>
-        <div class="sp-full-info">
-          <div id="sp-full-title" class="sp-full-title">טוען...</div>
-          <div id="sp-full-artist" class="sp-full-artist"></div>
-          <div class="sp-full-controls">
-            <button id="sp-full-next" class="sp-full-btn" title="הבא">⏭</button>
-            <button id="sp-full-play" class="sp-full-play-btn" title="נגן/השהה">▶</button>
-            <button id="sp-full-prev" class="sp-full-btn" title="הקודם">⏮</button>
-          </div>
-          <div class="sp-full-progress">
-            <span id="sp-full-pos">0:00</span>
-            <div class="sp-bar" id="sp-full-bar"><div class="sp-fill" id="sp-full-fill"></div></div>
-            <span id="sp-full-dur">0:00</span>
-          </div>
-          <div class="sp-volume">
-            <span>🔊</span>
-            <input type="range" id="sp-full-vol" min="0" max="100" value="80">
-          </div>
+        <iframe id="spotify-embed-full"
+          src=""
+          width="100%"
+          height="380"
+          frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          style="border-radius:16px">
+        </iframe>
+        <div id="spotify-no-playlist-full" class="spotify-no-playlist hidden">
+          <span>אין פלייליסט — הפעל מצב עריכה כדי להוסיף 🎵</span>
         </div>
       </div>
     </section>
@@ -382,17 +350,6 @@
     <p>פורטל המשפחה ❤️</p>
   </footer>
 
-  <!-- Identity Modal — shown on first visit -->
-  <div id="identity-modal" class="identity-modal hidden">
-    <div class="identity-modal-inner">
-      <div class="identity-logo">🏠</div>
-      <h2>שלום! מי אתה?</h2>
-      <p class="identity-subtitle">בחר את שמך כדי להתחיל</p>
-      <div id="identity-buttons" class="identity-buttons"></div>
-    </div>
-  </div>
-
-  <script src="https://sdk.scdn.co/spotify-player.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

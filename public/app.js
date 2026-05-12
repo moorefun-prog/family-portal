@@ -12,70 +12,13 @@ let editMode = false;
 let activeVideo = null;
 let photoSource = 'local';   // 'local' | 'google'
 let gphotoStatus = { connected: false, albumId: null, albumName: '' };
-let currentUser = null;       // set by identity modal or localStorage
-
-// ── Spotify SDK ready gate (must be synchronous — before any async code) ───
-// The Spotify Web Playback SDK fires window.onSpotifyWebPlaybackSDKReady as
-// soon as its script loads, which can happen before our async init finishes.
-// We capture that event into a Promise so loadDailySong() can await it safely.
-let _spotifySDKReadyResolve;
-const spotifySDKReadyPromise = new Promise(resolve => { _spotifySDKReadyResolve = resolve; });
-window.onSpotifyWebPlaybackSDKReady = () => _spotifySDKReadyResolve();
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 async function init() {
-  // Config must load first — we need member list for identity modal
-  await loadConfig();
-
-  // Check who is using this browser
-  currentUser = localStorage.getItem('familyPortalUser');
-
-  // Load everything that doesn't need identity
-  await Promise.all([loadPhotos(), loadVideos(), loadAppointments(), loadChores(), loadMessages()]);
-
-  if (!currentUser) {
-    showIdentityModal();
-  } else {
-    renderUserPill();
-    await loadDailySong();
-  }
-
+  await Promise.all([loadConfig(), loadPhotos(), loadVideos(), loadAppointments(), loadChores(), loadMessages()]);
+  await renderSpotifyEmbed();
   initRouter();
-}
-
-// ── Identity modal ─────────────────────────────────────────────────────────
-
-function showIdentityModal() {
-  const modal = document.getElementById('identity-modal');
-  const btns  = document.getElementById('identity-buttons');
-  const members = config.members || [];
-  btns.innerHTML = members.map(m =>
-    `<button class="identity-btn" onclick="selectIdentity('${esc(m)}')">${esc(m)}</button>`
-  ).join('');
-  modal.classList.remove('hidden');
-}
-
-async function selectIdentity(name) {
-  localStorage.setItem('familyPortalUser', name);
-  currentUser = name;
-  document.getElementById('identity-modal').classList.add('hidden');
-  renderUserPill();
-  await loadDailySong();
-}
-
-function renderUserPill() {
-  const pill = document.getElementById('user-pill');
-  if (!pill || !currentUser) return;
-  pill.innerHTML =
-    `<span class="user-pill-name">${esc(currentUser)}</span>` +
-    `<button class="user-pill-switch" onclick="switchUser()">החלף</button>`;
-  pill.classList.remove('hidden');
-}
-
-function switchUser() {
-  localStorage.removeItem('familyPortalUser');
-  location.reload();
 }
 
 async function loadConfig() {
@@ -120,165 +63,32 @@ async function loadChores() {
   renderChores();
 }
 
-// ── Spotify Web Playback SDK ───────────────────────────────────────────────
+// ── Spotify embed ──────────────────────────────────────────────────────────
 
-let spotifyPlayer = null;
-let spotifyDeviceId = null;
-let spotifyState = null;
-let progressTimer = null;
-
-async function loadDailySong() {
-  if (!currentUser) return;   // identity not chosen yet
-
-  const userParam  = encodeURIComponent(currentUser);
-  const loadingEl  = document.getElementById('music-loading-wrap');
-  const connectEl  = document.getElementById('spotify-connect');
-  const connectLink = document.getElementById('spotify-connect-link');
-
-  // Update connect link with the current user
-  if (connectLink) connectLink.href = `/auth/spotify?user=${userParam}`;
-
-  const status = await api('GET', `/api/spotify-status?user=${userParam}`);
-
-  if (!status.connected) {
-    loadingEl.classList.add('hidden');
-    connectEl.classList.remove('hidden');
-    return;
-  }
-
-  // Wait for the SDK to fire onSpotifyWebPlaybackSDKReady.
-  // If it already fired (script loaded first), this resolves immediately.
-  await spotifySDKReadyPromise;
-
-  const { ok } = await api('GET', `/api/spotify-token?user=${userParam}`);
-  if (!ok) {
-    loadingEl.classList.add('hidden');
-    connectEl.classList.remove('hidden');
-    return;
-  }
-
-  // Tear down any previous player (e.g. if called after identity switch)
-  if (spotifyPlayer) {
-    spotifyPlayer.disconnect();
-    spotifyPlayer = null;
-    spotifyDeviceId = null;
-  }
-
-  spotifyPlayer = new Spotify.Player({
-    name: `פורטל המשפחה — ${currentUser}`,
-    getOAuthToken: async cb => {
-      const res = await api('GET', `/api/spotify-token?user=${encodeURIComponent(currentUser)}`);
-      cb(res.access_token);
-    },
-    volume: 0.8
-  });
-
-  spotifyPlayer.addListener('ready', async ({ device_id }) => {
-    spotifyDeviceId = device_id;
-    loadingEl.classList.add('hidden');
-    document.getElementById('spotify-player').classList.remove('hidden');
-    await playSong();
-  });
-
-  spotifyPlayer.addListener('not_ready', () => {
-    spotifyDeviceId = null;
-  });
-
-  spotifyPlayer.addListener('player_state_changed', state => {
-    if (!state) return;
-    spotifyState = state;
-    updatePlayerUI(state);
-  });
-
-  spotifyPlayer.connect();
-}
-
-async function playSong() {
+async function renderSpotifyEmbed() {
   const song = await api('GET', '/api/daily-song');
-  if (!spotifyDeviceId || !currentUser) return;
+  const playlistId = song?.playlistId;
 
-  // Support both playlist and single track
-  const contextUri = song?.playlistId
-    ? `spotify:playlist:${song.playlistId}`
-    : song?.trackId
-      ? null  // legacy single-track — skip, user should set a playlist
-      : null;
-  if (!contextUri) return;
+  const stripEmbed    = document.getElementById('spotify-embed-strip');
+  const fullEmbed     = document.getElementById('spotify-embed-full');
+  const noPlaylist    = document.getElementById('spotify-no-playlist');
+  const noPlaylistFul = document.getElementById('spotify-no-playlist-full');
 
-  const { access_token } = await api('GET', `/api/spotify-token?user=${encodeURIComponent(currentUser)}`);
-  if (!access_token) return;
-  await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
-    method: 'PUT',
-    headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ context_uri: contextUri })
-  });
+  if (!playlistId) {
+    if (stripEmbed) stripEmbed.src = '';
+    if (fullEmbed)  fullEmbed.src  = '';
+    noPlaylist?.classList.remove('hidden');
+    noPlaylistFul?.classList.remove('hidden');
+    return;
+  }
+
+  // theme=0 = dark, matches the dark music strip; omit for light
+  const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
+  if (stripEmbed) stripEmbed.src = embedUrl;
+  if (fullEmbed)  fullEmbed.src  = embedUrl;
+  noPlaylist?.classList.add('hidden');
+  noPlaylistFul?.classList.add('hidden');
 }
-
-function updatePlayerUI(state) {
-  const track = state.track_window?.current_track;
-  if (!track) return;
-
-  // ── Strip player ──
-  const playBtn = document.getElementById('sp-play');
-  playBtn.textContent = state.paused ? '▶' : '⏸';
-  playBtn.classList.toggle('playing', !state.paused);
-
-  document.getElementById('sp-title').textContent = track.name;
-  document.getElementById('sp-artist').textContent = track.artists.map(a => a.name).join(', ');
-
-  const art = document.getElementById('sp-art');
-  if (track.album?.images?.[0]) art.src = track.album.images[0].url;
-
-  const dur = track.duration_ms;
-  document.getElementById('sp-dur').textContent = msToTime(dur);
-
-  // ── Full-page player ──
-  const fp = id => document.getElementById(id);
-  if (fp('sp-full-play')) fp('sp-full-play').textContent = state.paused ? '▶' : '⏸';
-  if (fp('sp-full-title'))  fp('sp-full-title').textContent  = track.name;
-  if (fp('sp-full-artist')) fp('sp-full-artist').textContent = track.artists.map(a => a.name).join(', ');
-  if (fp('sp-full-art') && track.album?.images?.[0]) fp('sp-full-art').src = track.album.images[0].url;
-  if (fp('sp-full-dur'))  fp('sp-full-dur').textContent  = msToTime(dur);
-
-  updateProgress(state.position, dur, state.paused);
-}
-
-function updateProgress(pos, dur, paused) {
-  clearInterval(progressTimer);
-  const fill    = document.getElementById('sp-fill');
-  const posEl   = document.getElementById('sp-pos');
-  const fill2   = document.getElementById('sp-full-fill');
-  const posEl2  = document.getElementById('sp-full-pos');
-  let current = pos;
-
-  const tick = () => {
-    const t = msToTime(current);
-    const w = `${Math.min(100, (current / dur) * 100)}%`;
-    posEl.textContent  = t;
-    fill.style.width   = w;
-    if (fill2)  fill2.style.width  = w;
-    if (posEl2) posEl2.textContent = t;
-    if (!paused) current += 500;
-  };
-  tick();
-  if (!paused) progressTimer = setInterval(tick, 500);
-}
-
-function msToTime(ms) {
-  const s = Math.floor(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-document.getElementById('sp-play').addEventListener('click', () => spotifyPlayer?.togglePlay());
-document.getElementById('sp-prev').addEventListener('click', () => spotifyPlayer?.previousTrack());
-document.getElementById('sp-next').addEventListener('click', () => spotifyPlayer?.nextTrack());
-document.getElementById('sp-vol').addEventListener('input', e => spotifyPlayer?.setVolume(e.target.value / 100));
-document.getElementById('sp-bar').addEventListener('click', async e => {
-  if (!spotifyState) return;
-  const pct = e.offsetX / e.currentTarget.offsetWidth;
-  const ms = Math.floor(pct * spotifyState.track_window.current_track.duration_ms);
-  spotifyPlayer.seek(ms);
-});
 
 document.getElementById('change-song-btn').addEventListener('click', () => {
   document.getElementById('change-song-form').classList.remove('hidden');
@@ -295,7 +105,7 @@ document.getElementById('song-save-btn').addEventListener('click', async () => {
   await api('POST', '/api/daily-song', { playlistId, date: new Date().toISOString().slice(0, 10) });
   document.getElementById('change-song-form').classList.add('hidden');
   document.getElementById('song-url-input').value = '';
-  await playSong();
+  await renderSpotifyEmbed();
 });
 
 // ── API helper ─────────────────────────────────────────────────────────────
@@ -1234,25 +1044,8 @@ function renderMediaFull() {
 // ── Spotify full page sync ────────────────────────────────────────────────
 
 function syncFullPlayer() {
-  if (spotifyState) {
-    updatePlayerUI(spotifyState);
-  } else {
-    const t = document.getElementById('sp-full-title');
-    if (t) t.textContent = 'Spotify לא מחובר';
-  }
+  // Full-page embed is set at init; nothing to sync dynamically.
 }
-
-// Full page Spotify controls
-document.getElementById('sp-full-play').addEventListener('click', () => spotifyPlayer?.togglePlay());
-document.getElementById('sp-full-prev').addEventListener('click', () => spotifyPlayer?.previousTrack());
-document.getElementById('sp-full-next').addEventListener('click', () => spotifyPlayer?.nextTrack());
-document.getElementById('sp-full-vol').addEventListener('input', e => spotifyPlayer?.setVolume(e.target.value / 100));
-document.getElementById('sp-full-bar').addEventListener('click', e => {
-  if (!spotifyState) return;
-  const pct = e.offsetX / e.currentTarget.offsetWidth;
-  const ms  = Math.floor(pct * spotifyState.track_window.current_track.duration_ms);
-  spotifyPlayer.seek(ms);
-});
 
 // ── Start ──────────────────────────────────────────────────────────────────
 

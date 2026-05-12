@@ -6,6 +6,5 @@ node_modules/
 # Live data — never commit tokens or uploads
 data/google-token.json
 data/spotify-token.json
-data/spotify-tokens/
 data/photos/*
 !data/photos/.gitkeep
