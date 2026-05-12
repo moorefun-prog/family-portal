@@ -817,8 +817,9 @@ function renderMessageBoard() {
 
   // Scale speed: ~7s per message, min 14s
   const dur = Math.max(14, messages.length * 7);
-  scroll.style.animationDuration = `${dur}s`;
-  scroll.style.animation = `msgScrollUp ${dur}s linear infinite`;
+  // On mobile the ticker is horizontal — use the horizontal keyframe
+  const animName = window.innerWidth <= 680 ? 'msgScrollLeft' : 'msgScrollUp';
+  scroll.style.animation = `${animName} ${dur}s linear infinite`;
 }
 
 function formatMsgTime(ts) {
