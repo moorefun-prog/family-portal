@@ -33,6 +33,24 @@ function initDataDir() {
 
 initDataDir();
 
+// ── One-time migrations ────────────────────────────────────────────────────
+(function migrate() {
+  const cfgPath = path.join(DATA_DIR, 'config.json');
+  try {
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    let dirty = false;
+
+    // Remove הרשי (the dog) from members and passwords
+    if (cfg.members && cfg.members.includes('הרשי')) {
+      cfg.members = cfg.members.filter(m => m !== 'הרשי');
+      if (cfg.passwords) delete cfg.passwords['הרשי'];
+      dirty = true;
+    }
+
+    if (dirty) fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+  } catch {}
+})();
+
 function readJSON(file) {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
 }
