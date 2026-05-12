@@ -822,7 +822,7 @@ function renderMessageBoard() {
       const dur = Math.max(1, segmentPx / 50); // 50px/s
       let ks = document.getElementById('_ticker_ks');
       if (!ks) { ks = document.createElement('style'); ks.id = '_ticker_ks'; document.head.appendChild(ks); }
-      ks.textContent = `@keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(${segmentPx}px)} }`;
+      ks.textContent = `@keyframes tickerScroll { 0%{transform:translateX(-${segmentPx}px)} 100%{transform:translateX(0)} }`;
       scroll.style.animation = `tickerScroll ${dur}s linear infinite`;
     });
   } else {
