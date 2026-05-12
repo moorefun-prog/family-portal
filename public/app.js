@@ -817,9 +817,20 @@ function renderMessageBoard() {
 
   // Scale speed: ~7s per message, min 14s
   const dur = Math.max(14, messages.length * 7);
-  // On mobile the ticker is horizontal — use the horizontal keyframe
-  const animName = window.innerWidth <= 680 ? 'msgScrollLeft' : 'msgScrollUp';
-  scroll.style.animation = `${animName} ${dur}s linear infinite`;
+
+  if (window.innerWidth <= 680) {
+    // Horizontal ticker: measure real pixel width after render, then animate exactly one copy's width
+    scroll.style.animation = 'none';
+    requestAnimationFrame(() => {
+      const halfPx = scroll.scrollWidth / 2;
+      let ks = document.getElementById('_ticker_ks');
+      if (!ks) { ks = document.createElement('style'); ks.id = '_ticker_ks'; document.head.appendChild(ks); }
+      ks.textContent = `@keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-${halfPx}px)} }`;
+      scroll.style.animation = `tickerScroll ${dur}s linear infinite`;
+    });
+  } else {
+    scroll.style.animation = `msgScrollUp ${dur}s linear infinite`;
+  }
 }
 
 function formatMsgTime(ts) {
