@@ -40,7 +40,10 @@
 
   <header>
     <h1 id="family-name">פורטל המשפחה</h1>
-    <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
+    <div class="header-actions">
+      <span id="user-pill" class="user-pill hidden"></span>
+      <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
+    </div>
   </header>
 
   <!-- Message Board (fixed left panel on desktop / in-flow ticker on mobile) -->
@@ -62,7 +65,7 @@
       <!-- Not connected state -->
       <div id="spotify-connect" class="spotify-connect hidden">
         <span class="music-loading">Spotify לא מחובר —</span>
-        <a href="/auth/spotify" class="btn btn-primary btn-sm">התחבר ל-Spotify</a>
+        <a id="spotify-connect-link" href="#" class="btn btn-primary btn-sm">התחבר ל-Spotify</a>
       </div>
 
       <!-- Player -->
@@ -378,6 +381,16 @@
   <footer>
     <p>פורטל המשפחה ❤️</p>
   </footer>
+
+  <!-- Identity Modal — shown on first visit -->
+  <div id="identity-modal" class="identity-modal hidden">
+    <div class="identity-modal-inner">
+      <div class="identity-logo">🏠</div>
+      <h2>שלום! מי אתה?</h2>
+      <p class="identity-subtitle">בחר את שמך כדי להתחיל</p>
+      <div id="identity-buttons" class="identity-buttons"></div>
+    </div>
+  </div>
 
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
   <script src="app.js"></script>

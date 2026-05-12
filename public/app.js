@@ -12,6 +12,7 @@ let editMode = false;
 let activeVideo = null;
 let photoSource = 'local';   // 'local' | 'google'
 let gphotoStatus = { connected: false, albumId: null, albumName: '' };
+let currentUser = null;       // set by identity modal or localStorage
 
 // ── Spotify SDK ready gate (must be synchronous — before any async code) ───
 // The Spotify Web Playback SDK fires window.onSpotifyWebPlaybackSDKReady as
@@ -24,8 +25,57 @@ window.onSpotifyWebPlaybackSDKReady = () => _spotifySDKReadyResolve();
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 async function init() {
-  await Promise.all([loadConfig(), loadPhotos(), loadVideos(), loadAppointments(), loadChores(), loadDailySong(), loadMessages()]);
+  // Config must load first — we need member list for identity modal
+  await loadConfig();
+
+  // Check who is using this browser
+  currentUser = localStorage.getItem('familyPortalUser');
+
+  // Load everything that doesn't need identity
+  await Promise.all([loadPhotos(), loadVideos(), loadAppointments(), loadChores(), loadMessages()]);
+
+  if (!currentUser) {
+    showIdentityModal();
+  } else {
+    renderUserPill();
+    await loadDailySong();
+  }
+
   initRouter();
+}
+
+// ── Identity modal ─────────────────────────────────────────────────────────
+
+function showIdentityModal() {
+  const modal = document.getElementById('identity-modal');
+  const btns  = document.getElementById('identity-buttons');
+  const members = config.members || [];
+  btns.innerHTML = members.map(m =>
+    `<button class="identity-btn" onclick="selectIdentity('${esc(m)}')">${esc(m)}</button>`
+  ).join('');
+  modal.classList.remove('hidden');
+}
+
+async function selectIdentity(name) {
+  localStorage.setItem('familyPortalUser', name);
+  currentUser = name;
+  document.getElementById('identity-modal').classList.add('hidden');
+  renderUserPill();
+  await loadDailySong();
+}
+
+function renderUserPill() {
+  const pill = document.getElementById('user-pill');
+  if (!pill || !currentUser) return;
+  pill.innerHTML =
+    `<span class="user-pill-name">${esc(currentUser)}</span>` +
+    `<button class="user-pill-switch" onclick="switchUser()">החלף</button>`;
+  pill.classList.remove('hidden');
+}
+
+function switchUser() {
+  localStorage.removeItem('familyPortalUser');
+  location.reload();
 }
 
 async function loadConfig() {
@@ -78,12 +128,21 @@ let spotifyState = null;
 let progressTimer = null;
 
 async function loadDailySong() {
-  const status = await api('GET', '/api/spotify-status');
-  const loadingEl = document.getElementById('music-loading-wrap');
+  if (!currentUser) return;   // identity not chosen yet
+
+  const userParam  = encodeURIComponent(currentUser);
+  const loadingEl  = document.getElementById('music-loading-wrap');
+  const connectEl  = document.getElementById('spotify-connect');
+  const connectLink = document.getElementById('spotify-connect-link');
+
+  // Update connect link with the current user
+  if (connectLink) connectLink.href = `/auth/spotify?user=${userParam}`;
+
+  const status = await api('GET', `/api/spotify-status?user=${userParam}`);
 
   if (!status.connected) {
     loadingEl.classList.add('hidden');
-    document.getElementById('spotify-connect').classList.remove('hidden');
+    connectEl.classList.remove('hidden');
     return;
   }
 
@@ -91,17 +150,24 @@ async function loadDailySong() {
   // If it already fired (script loaded first), this resolves immediately.
   await spotifySDKReadyPromise;
 
-  const { ok } = await api('GET', '/api/spotify-token');
+  const { ok } = await api('GET', `/api/spotify-token?user=${userParam}`);
   if (!ok) {
     loadingEl.classList.add('hidden');
-    document.getElementById('spotify-connect').classList.remove('hidden');
+    connectEl.classList.remove('hidden');
     return;
   }
 
+  // Tear down any previous player (e.g. if called after identity switch)
+  if (spotifyPlayer) {
+    spotifyPlayer.disconnect();
+    spotifyPlayer = null;
+    spotifyDeviceId = null;
+  }
+
   spotifyPlayer = new Spotify.Player({
-    name: 'פורטל המשפחה',
+    name: `פורטל המשפחה — ${currentUser}`,
     getOAuthToken: async cb => {
-      const res = await api('GET', '/api/spotify-token');
+      const res = await api('GET', `/api/spotify-token?user=${encodeURIComponent(currentUser)}`);
       cb(res.access_token);
     },
     volume: 0.8
@@ -129,7 +195,7 @@ async function loadDailySong() {
 
 async function playSong() {
   const song = await api('GET', '/api/daily-song');
-  if (!spotifyDeviceId) return;
+  if (!spotifyDeviceId || !currentUser) return;
 
   // Support both playlist and single track
   const contextUri = song?.playlistId
@@ -139,7 +205,8 @@ async function playSong() {
       : null;
   if (!contextUri) return;
 
-  const { access_token } = await api('GET', '/api/spotify-token');
+  const { access_token } = await api('GET', `/api/spotify-token?user=${encodeURIComponent(currentUser)}`);
+  if (!access_token) return;
   await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
