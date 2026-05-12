@@ -1380,19 +1380,17 @@ footer         { padding-right: calc(76px + 2.5rem); }
   html { overflow-x: hidden; }
   body { overflow-x: hidden; max-width: 100vw; }
 
-  /* Message board: full-width ticker strip, glued to bottom of header */
+  /* Message board: in-flow ticker strip, scrolls with the page */
   .message-board {
-    left: 0;
-    right: 0;
-    top: 44px; /* matches mobile header height */
-    bottom: auto;
+    position: relative;
+    top: auto; left: auto; right: auto; bottom: auto;
     width: 100%;
     height: 44px;
     flex-direction: row;
     align-items: center;
     border-right: none;
     border-bottom: 1px solid rgba(116,200,240,0.25);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: none;
   }
 
   /* Hide the label — no room on a narrow ticker */
@@ -1453,7 +1451,7 @@ footer         { padding-right: calc(76px + 2.5rem); }
 
   /* Reset all sidebar paddings so content uses full width */
   header        { padding: 0.6rem 1rem; }
-  .music-strip  { padding: 0.5rem 1rem; margin-top: 44px; /* push below the 44px ticker (header already in flow) */ }
+  .music-strip  { padding: 0.5rem 1rem; margin-top: 0; }
   .edit-toolbar { padding: 0.5rem 1rem; }
   footer        { padding: 1.5rem 1rem 74px; }
   .page         { margin-left: 0; margin-right: 0; padding-bottom: 68px; }
