@@ -146,13 +146,13 @@ app.delete('/api/avatars/:member', (req, res) => {
   res.json({ ok: true });
 });
 
-// YouTube playlist
+// YouTube embed (single video or playlist)
 app.get('/api/youtube-playlist', (req, res) => {
   try { res.json(readJSON('youtube-playlist.json')); }
-  catch { res.json({ playlistId: null }); }
+  catch { res.json({ id: null, type: null }); }
 });
 app.post('/api/youtube-playlist', (req, res) => {
-  writeJSON('youtube-playlist.json', { playlistId: req.body.playlistId || null });
+  writeJSON('youtube-playlist.json', { id: req.body.id || null, type: req.body.type || null });
   res.json({ ok: true });
 });
 

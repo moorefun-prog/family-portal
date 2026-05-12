@@ -199,19 +199,22 @@ async function deletePhoto(filename) {
 // ── YouTube playlist embed ────────────────────────────────────────────────
 
 async function renderYouTubeEmbed() {
-  const data = await api('GET', '/api/youtube-playlist');
-  const playlistId = data?.playlistId;
+  const data     = await api('GET', '/api/youtube-playlist');
+  const { id, type } = data || {};
 
-  const embedEl    = document.getElementById('youtube-embed');
-  const noListEl   = document.getElementById('youtube-no-playlist');
+  const embedEl  = document.getElementById('youtube-embed');
+  const noListEl = document.getElementById('youtube-no-playlist');
 
-  if (!playlistId) {
+  if (!id) {
     if (embedEl) embedEl.src = '';
     noListEl?.classList.remove('hidden');
     return;
   }
 
-  const embedUrl = `https://www.youtube.com/embed/videoseries?list=${playlistId}&hl=he`;
+  const embedUrl = type === 'playlist'
+    ? `https://www.youtube.com/embed/videoseries?list=${id}&hl=he`
+    : `https://www.youtube.com/embed/${id}?hl=he`;
+
   if (embedEl) embedEl.src = embedUrl;
   noListEl?.classList.add('hidden');
 }
@@ -225,9 +228,20 @@ document.getElementById('video-cancel-btn').addEventListener('click', () => {
 });
 document.getElementById('video-save-btn').addEventListener('click', async () => {
   const raw = document.getElementById('video-url-input').value.trim();
-  const match = raw.match(/[?&]list=([A-Za-z0-9_-]+)/);
-  if (!match) return alert('קישור לא תקין — השתמש בקישור לפלייליסט מ-YouTube');
-  await api('POST', '/api/youtube-playlist', { playlistId: match[1] });
+
+  // Playlist: ?list=XXXX or &list=XXXX
+  const listMatch = raw.match(/[?&]list=([A-Za-z0-9_-]+)/);
+  // Single video: youtu.be/ID  or  ?v=ID  or  &v=ID
+  const videoMatch = raw.match(/(?:youtu\.be\/|[?&]v=)([A-Za-z0-9_-]{11})/);
+
+  if (!listMatch && !videoMatch) {
+    return alert('קישור לא תקין — הדבק קישור לסרטון או לפלייליסט מ-YouTube');
+  }
+
+  const type = listMatch ? 'playlist' : 'video';
+  const id   = listMatch ? listMatch[1] : videoMatch[1];
+
+  await api('POST', '/api/youtube-playlist', { id, type });
   document.getElementById('change-video-form').classList.add('hidden');
   document.getElementById('video-url-input').value = '';
   await renderYouTubeEmbed();
