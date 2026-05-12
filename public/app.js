@@ -820,7 +820,7 @@ function renderMessageBoard() {
     scroll.style.animation = 'none';
     requestAnimationFrame(() => {
       const halfPx = scroll.scrollWidth / 2;
-      const SPEED = 80; // pixels per second — adjust to taste
+      const SPEED = 50; // pixels per second — lower = slower
       const dur = Math.max(4, halfPx / SPEED);
       let ks = document.getElementById('_ticker_ks');
       if (!ks) { ks = document.createElement('style'); ks.id = '_ticker_ks'; document.head.appendChild(ks); }
