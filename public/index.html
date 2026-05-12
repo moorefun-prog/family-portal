@@ -222,25 +222,31 @@
         </div>
       </div>
 
-      <!-- Videos -->
+      <!-- Videos — YouTube playlist embed -->
       <div class="media-block">
         <div class="media-block-header">
           <h2>🎬 סרטונים</h2>
-          <label class="btn btn-primary btn-sm upload-btn" id="video-upload-label">
-            <span id="video-upload-text">⬆️ העלה סרטון</span>
-            <input type="file" id="video-upload" accept="video/*" style="display:none">
-          </label>
+          <button id="change-video-btn" class="btn btn-secondary btn-sm edit-only hidden">🔀 החלף פלייליסט</button>
         </div>
-        <div id="video-player-wrap" class="video-player-wrap">
-          <div class="video-placeholder">
+        <div id="change-video-form" class="change-video-form hidden">
+          <input type="text" id="video-url-input" placeholder="הדבק קישור לפלייליסט YouTube...">
+          <button id="video-save-btn" class="btn btn-primary btn-sm">שמור</button>
+          <button id="video-cancel-btn" class="btn btn-secondary btn-sm">ביטול</button>
+        </div>
+        <div id="youtube-embed-wrap" class="youtube-embed-wrap">
+          <iframe id="youtube-embed"
+            src=""
+            width="100%"
+            height="280"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy">
+          </iframe>
+          <div id="youtube-no-playlist" class="youtube-no-playlist hidden">
             <p>🎬</p>
-            <p class="subtitle">לא הועלו סרטונים עדיין</p>
+            <p class="subtitle">הוסף פלייליסט YouTube דרך מצב עריכה</p>
           </div>
-        </div>
-        <div id="video-list" class="video-list"></div>
-        <div id="video-edit-panel" class="edit-panel hidden">
-          <h3>ניהול סרטונים</h3>
-          <div id="video-thumbnails" class="photo-thumbnails"></div>
         </div>
       </div>
 
@@ -318,7 +324,7 @@
   <div id="page-media" class="page">
     <section class="section">
       <div class="section-header">
-        <h2>📸 גלריית מדיה</h2>
+        <h2>📸 גלריית תמונות</h2>
       </div>
       <div id="media-full-grid" class="media-full-grid"></div>
     </section>

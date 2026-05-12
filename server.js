@@ -14,16 +14,14 @@ const PORT = process.env.PORT || 3000;
 
 const DATA_DIR = path.join(__dirname, 'data');
 const PHOTOS_DIR = path.join(DATA_DIR, 'photos');
-const VIDEOS_DIR = path.join(DATA_DIR, 'videos');
 const AVATARS_DIR = path.join(DATA_DIR, 'avatars');
 const SEED_DIR = path.join(__dirname, 'data-seed');
 
 function initDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
-  if (!fs.existsSync(VIDEOS_DIR)) fs.mkdirSync(VIDEOS_DIR, { recursive: true });
   if (!fs.existsSync(AVATARS_DIR)) fs.mkdirSync(AVATARS_DIR, { recursive: true });
-  const files = ['config.json', 'appointments.json', 'chores.json', 'messages.json'];
+  const files = ['config.json', 'appointments.json', 'chores.json', 'messages.json', 'youtube-playlist.json'];
   for (const file of files) {
     const dest = path.join(DATA_DIR, file);
     if (!fs.existsSync(dest)) {
@@ -45,7 +43,6 @@ function writeJSON(file, data) {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/photos', express.static(PHOTOS_DIR));
-app.use('/videos', express.static(VIDEOS_DIR));
 app.use('/avatars', express.static(AVATARS_DIR));
 
 // Multer for photos (10 MB limit)
@@ -58,19 +55,6 @@ const uploadPhoto = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Images only'));
-  }
-});
-
-// Multer for videos (200 MB limit)
-const videoStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, VIDEOS_DIR),
-  filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
-});
-const uploadVideo = multer({
-  storage: videoStorage,
-  limits: { fileSize: 200 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    file.mimetype.startsWith('video/') ? cb(null, true) : cb(new Error('Videos only'));
   }
 });
 
@@ -162,17 +146,13 @@ app.delete('/api/avatars/:member', (req, res) => {
   res.json({ ok: true });
 });
 
-// Videos
-app.get('/api/videos', (req, res) => {
-  const files = fs.readdirSync(VIDEOS_DIR).filter(f => /\.(mp4|mov|webm|avi|mkv)$/i.test(f));
-  res.json(files);
+// YouTube playlist
+app.get('/api/youtube-playlist', (req, res) => {
+  try { res.json(readJSON('youtube-playlist.json')); }
+  catch { res.json({ playlistId: null }); }
 });
-app.post('/api/videos', uploadVideo.single('video'), (req, res) => {
-  res.json({ ok: true, filename: req.file.filename });
-});
-app.delete('/api/videos/:filename', (req, res) => {
-  const fp = path.join(VIDEOS_DIR, path.basename(req.params.filename));
-  if (fs.existsSync(fp)) fs.unlinkSync(fp);
+app.post('/api/youtube-playlist', (req, res) => {
+  writeJSON('youtube-playlist.json', { playlistId: req.body.playlistId || null });
   res.json({ ok: true });
 });
 

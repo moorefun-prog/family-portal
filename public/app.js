@@ -4,20 +4,18 @@ let config = {};
 let appointments = [];
 let chores = [];
 let photos = [];       // filenames (local) OR full URLs (google)
-let videos = [];
 let messages = [];
 let currentSlide = 0;
 let slideTimer = null;
 let editMode = false;
-let activeVideo = null;
 let photoSource = 'local';   // 'local' | 'google'
 let gphotoStatus = { connected: false, albumId: null, albumName: '' };
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
 async function init() {
-  await Promise.all([loadConfig(), loadPhotos(), loadVideos(), loadAppointments(), loadChores(), loadMessages()]);
-  await renderSpotifyEmbed();
+  await Promise.all([loadConfig(), loadPhotos(), loadAppointments(), loadChores(), loadMessages()]);
+  await Promise.all([renderSpotifyEmbed(), renderYouTubeEmbed()]);
   initRouter();
 }
 
@@ -48,10 +46,6 @@ async function loadPhotos() {
   renderSlideshow();
 }
 
-async function loadVideos() {
-  videos = await api('GET', '/api/videos');
-  renderVideoList();
-}
 
 async function loadAppointments() {
   appointments = await api('GET', '/api/appointments');
@@ -202,73 +196,41 @@ async function deletePhoto(filename) {
   renderPhotoThumbs();
 }
 
-// ── Videos ────────────────────────────────────────────────────────────────
+// ── YouTube playlist embed ────────────────────────────────────────────────
 
-function renderVideoList() {
-  const wrap = document.getElementById('video-player-wrap');
-  const list = document.getElementById('video-list');
+async function renderYouTubeEmbed() {
+  const data = await api('GET', '/api/youtube-playlist');
+  const playlistId = data?.playlistId;
 
-  if (videos.length === 0) {
-    wrap.innerHTML = `<div class="video-placeholder"><p>🎬</p><p class="subtitle">לא הועלו סרטונים עדיין</p></div>`;
-    list.innerHTML = '';
+  const embedEl    = document.getElementById('youtube-embed');
+  const noListEl   = document.getElementById('youtube-no-playlist');
+
+  if (!playlistId) {
+    if (embedEl) embedEl.src = '';
+    noListEl?.classList.remove('hidden');
     return;
   }
 
-  // Auto-play first video if none active
-  if (!activeVideo || !videos.includes(activeVideo)) activeVideo = videos[0];
-  playVideo(activeVideo, false);
-
-  list.innerHTML = videos.map(f => `
-    <div class="video-item${f === activeVideo ? ' active' : ''}" onclick="playVideo('${f}', true)">
-      <span class="video-icon">▶️</span>
-      <span class="video-name">${esc(f.replace(/^[a-f0-9-]+(\..+)$/, 'סרטון$1'))}</span>
-      <button class="delete-video edit-only hidden" onclick="deleteVideo(event,'${f}')" title="מחק">🗑️</button>
-    </div>`
-  ).join('');
-
-  if (editMode) revealEditControls();
+  const embedUrl = `https://www.youtube.com/embed/videoseries?list=${playlistId}&hl=he`;
+  if (embedEl) embedEl.src = embedUrl;
+  noListEl?.classList.add('hidden');
 }
 
-function playVideo(filename, updateList) {
-  activeVideo = filename;
-  const wrap = document.getElementById('video-player-wrap');
-  wrap.innerHTML = `
-    <video controls autoplay>
-      <source src="/videos/${encodeURIComponent(filename)}" type="video/mp4">
-    </video>`;
-  if (updateList) {
-    document.querySelectorAll('.video-item').forEach(el => el.classList.remove('active'));
-    const items = document.querySelectorAll('.video-item');
-    const idx = videos.indexOf(filename);
-    if (items[idx]) items[idx].classList.add('active');
-  }
-}
-
-async function deleteVideo(e, filename) {
-  e.stopPropagation();
-  if (!confirm('למחוק סרטון זה?')) return;
-  await api('DELETE', `/api/videos/${encodeURIComponent(filename)}`);
-  videos = videos.filter(f => f !== filename);
-  if (activeVideo === filename) activeVideo = null;
-  renderVideoList();
-}
-
-document.getElementById('video-upload').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const txt = document.getElementById('video-upload-text');
-  txt.textContent = '⏳ מעלה...';
-  const form = new FormData();
-  form.append('video', file);
-  const res = await fetch('/api/videos', { method: 'POST', body: form });
-  const data = await res.json();
-  txt.textContent = '⬆️ העלה סרטון';
-  if (data.ok) {
-    videos.push(data.filename);
-    activeVideo = data.filename;
-    renderVideoList();
-  }
-  e.target.value = '';
+document.getElementById('change-video-btn').addEventListener('click', () => {
+  document.getElementById('change-video-form').classList.remove('hidden');
+  document.getElementById('video-url-input').focus();
+});
+document.getElementById('video-cancel-btn').addEventListener('click', () => {
+  document.getElementById('change-video-form').classList.add('hidden');
+});
+document.getElementById('video-save-btn').addEventListener('click', async () => {
+  const raw = document.getElementById('video-url-input').value.trim();
+  const match = raw.match(/[?&]list=([A-Za-z0-9_-]+)/);
+  if (!match) return alert('קישור לא תקין — השתמש בקישור לפלייליסט מ-YouTube');
+  await api('POST', '/api/youtube-playlist', { playlistId: match[1] });
+  document.getElementById('change-video-form').classList.add('hidden');
+  document.getElementById('video-url-input').value = '';
+  await renderYouTubeEmbed();
 });
 
 document.getElementById('photo-upload').addEventListener('change', async (e) => {
@@ -1024,21 +986,12 @@ function renderMediaFull() {
   const grid = document.getElementById('media-full-grid');
   if (!grid) return;
 
-  let html = '';
-  photos.forEach(f => {
-    html += `<div class="media-full-item">
-      <img src="/photos/${encodeURIComponent(f)}" alt="תמונה" loading="lazy">
-    </div>`;
-  });
-  videos.forEach(f => {
-    html += `<div class="media-full-item">
-      <video controls preload="metadata">
-        <source src="/videos/${encodeURIComponent(f)}" type="video/mp4">
-      </video>
-    </div>`;
-  });
+  const html = photos.map(f => `
+    <div class="media-full-item">
+      <img src="${photoUrl(f)}" alt="תמונה" loading="lazy">
+    </div>`).join('');
 
-  grid.innerHTML = html || '<div class="empty-chores">לא הועלו תמונות או סרטונים עדיין</div>';
+  grid.innerHTML = html || '<div class="empty-chores">לא הועלו תמונות עדיין</div>';
 }
 
 // ── Spotify full page sync ────────────────────────────────────────────────
