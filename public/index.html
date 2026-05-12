@@ -43,6 +43,17 @@
     <button id="edit-btn" class="edit-btn">✏️ עריכה</button>
   </header>
 
+  <!-- Message Board (fixed left panel on desktop / in-flow ticker on mobile) -->
+  <aside id="message-board" class="message-board">
+    <div class="message-board-header">
+      <span>💬 הודעות</span>
+    </div>
+    <div class="message-scroll-wrap">
+      <div id="message-scroll" class="message-scroll"></div>
+    </div>
+    <button id="add-message-btn" class="msg-add-btn" title="הוסף הודעה">+ הודעה</button>
+  </aside>
+
   <!-- Daily Song Strip -->
   <div id="music-strip" class="music-strip">
     <div class="music-strip-inner">
@@ -87,17 +98,6 @@
       <button id="song-cancel-btn" class="btn btn-secondary btn-sm">ביטול</button>
     </div>
   </div>
-
-  <!-- Message Board (fixed left panel) -->
-  <aside id="message-board" class="message-board">
-    <div class="message-board-header">
-      <span>💬 הודעות</span>
-    </div>
-    <div class="message-scroll-wrap">
-      <div id="message-scroll" class="message-scroll"></div>
-    </div>
-    <button id="add-message-btn" class="msg-add-btn" title="הוסף הודעה">+ הודעה</button>
-  </aside>
 
   <!-- Add Message Modal (always available) -->
   <div id="add-message-modal" class="modal hidden">
