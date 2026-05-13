@@ -253,20 +253,21 @@
             </div>
             <!-- Not connected -->
             <div id="gphoto-connect-row" class="hidden">
-              <a href="/auth/google" class="btn btn-primary btn-sm">🔗 חבר Google Photos</a>
+              <a href="/auth/google" class="btn btn-primary btn-sm">🔗 חבר Google Drive</a>
             </div>
-            <!-- Connected, pick album -->
-            <div id="gphoto-album-row" class="hidden">
-              <select id="gphoto-album-select" class="gphoto-select">
-                <option value="">-- טוען אלבומים... --</option>
-              </select>
-              <button id="gphoto-save-album-btn" class="btn btn-primary btn-sm">בחר</button>
-            </div>
-            <!-- Album active -->
-            <div id="gphoto-active-row" class="hidden">
-              <button id="gphoto-change-btn" class="btn btn-secondary btn-sm">🔄 שנה אלבום</button>
-              <button id="gphoto-refresh-btn" class="btn btn-secondary btn-sm">⟳ רענן</button>
-              <button id="gphoto-disconnect-btn" class="btn btn-danger btn-sm">✕ נתק</button>
+            <!-- Connected (album picker shown only when no folder selected yet) -->
+            <div id="gphoto-connected-row" class="hidden">
+              <div id="gphoto-album-picker" class="hidden">
+                <select id="gphoto-album-select" class="gphoto-select">
+                  <option value="">-- בחר תיקייה --</option>
+                </select>
+                <button id="gphoto-save-album-btn" class="btn btn-primary btn-sm">בחר</button>
+              </div>
+              <div id="gphoto-actions" class="hidden">
+                <button id="gphoto-refresh-btn" class="btn btn-secondary btn-sm">⟳ רענן</button>
+                <button id="gphoto-change-btn" class="btn btn-secondary btn-sm">🔄 שנה תיקייה</button>
+              </div>
+              <button id="gphoto-disconnect-btn" class="btn btn-danger btn-sm">התנתק</button>
             </div>
           </div>
 

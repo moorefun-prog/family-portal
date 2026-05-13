@@ -315,13 +315,13 @@ app.get('/auth/google/callback', async (req, res) => {
   photoUrlCache = { urls: [], albumId: null, fetchedAt: 0 }; // clear cache
 
   res.send(`<!DOCTYPE html><html lang="he" dir="rtl">
-    <head><meta charset="UTF-8"><title>Google Photos מחובר</title>
+    <head><meta charset="UTF-8"><title>Google Drive מחובר</title>
+    <meta http-equiv="refresh" content="2;url=/">
     <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;
     margin:0;background:#eaf5fd;}.box{text-align:center;padding:2rem;background:white;border-radius:20px;
     box-shadow:0 4px 24px rgba(0,0,0,.1);}h2{color:#1a8fd1;}p{color:#555;}</style></head>
-    <body><div class="box"><h2>✅ Google Photos מחובר!</h2>
-    <p>כעת בחר אלבום בפורטל המשפחה (מצב עריכה).</p>
-    <a href="/">חזרה לפורטל</a></div></body></html>`);
+    <body><div class="box"><h2>✅ Google Drive מחובר!</h2>
+    <p>חוזר לפורטל...</p></div></body></html>`);
 });
 
 // Connection status

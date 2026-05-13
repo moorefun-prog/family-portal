@@ -44,6 +44,9 @@ async function startPortal() {
   if (userRole === 'admin') enterEditMode();
 
   await Promise.all([loadPhotos(), loadAppointments(), loadChores(), loadMessages()]);
+
+  // Re-render gphoto panel now that we have the real connection status from the server
+  if (userRole === 'admin') renderGPhotoPanel();
   await Promise.all([renderSpotifyEmbed(), renderYouTubeEmbed()]);
   initRouter();
 }
@@ -907,33 +910,38 @@ function photoUrl(f) {
 }
 
 function renderGPhotoPanel() {
-  const s = gphotoStatus;
-  const ind  = document.getElementById('gphoto-indicator');
-  const txt  = document.getElementById('gphoto-status-text');
-  const conn = document.getElementById('gphoto-connect-row');
-  const alb  = document.getElementById('gphoto-album-row');
-  const act  = document.getElementById('gphoto-active-row');
-  const locS = document.getElementById('local-photo-section');
+  const s        = gphotoStatus;
+  const ind      = document.getElementById('gphoto-indicator');
+  const txt      = document.getElementById('gphoto-status-text');
+  const connRow  = document.getElementById('gphoto-connect-row');
+  const connedRow= document.getElementById('gphoto-connected-row');
+  const picker   = document.getElementById('gphoto-album-picker');
+  const actions  = document.getElementById('gphoto-actions');
+  const locS     = document.getElementById('local-photo-section');
 
-  // Hide all rows first
-  [conn, alb, act].forEach(el => el.classList.add('hidden'));
+  // Reset
+  connRow.classList.add('hidden');
+  connedRow.classList.add('hidden');
+  picker.classList.add('hidden');
+  actions.classList.add('hidden');
 
   if (!s.connected) {
-    ind.textContent = '🔴';
-    txt.textContent = 'Google Photos לא מחובר';
-    conn.classList.remove('hidden');
+    ind.textContent  = '🔴';
+    txt.textContent  = 'Google Drive לא מחובר';
+    connRow.classList.remove('hidden');
     locS.style.display = '';
   } else if (!s.albumId) {
-    ind.textContent = '🟡';
-    txt.textContent = 'מחובר — אנא בחר אלבום';
-    alb.classList.remove('hidden');
+    ind.textContent  = '🟡';
+    txt.textContent  = 'מחובר — בחר תיקייה';
+    connedRow.classList.remove('hidden');
+    picker.classList.remove('hidden');
     loadAlbumList();
     locS.style.display = '';
   } else {
-    ind.textContent = '🟢';
-    txt.textContent = `Google Photos · ${s.albumName || s.albumId}`;
-    act.classList.remove('hidden');
-    // Hide local upload when Google is active
+    ind.textContent  = '🟢';
+    txt.textContent  = `Google Drive · ${s.albumName || s.albumId}`;
+    connedRow.classList.remove('hidden');
+    actions.classList.remove('hidden');
     locS.style.display = 'none';
   }
 }
@@ -976,10 +984,10 @@ document.getElementById('gphoto-refresh-btn').addEventListener('click', async ()
     photoSource = 'google';
     renderSlideshow();
     renderPhotoThumbs();
-    document.getElementById('gphoto-status-text').textContent = `Google Photos · ${gphotoStatus.albumName} (${photos.length})`;
+    document.getElementById('gphoto-status-text').textContent = `Google Drive · ${gphotoStatus.albumName} (${photos.length})`;
   } else {
     alert('שגיאה בטעינת התמונות: ' + result.error);
-    document.getElementById('gphoto-status-text').textContent = `Google Photos · ${gphotoStatus.albumName}`;
+    document.getElementById('gphoto-status-text').textContent = `Google Drive · ${gphotoStatus.albumName}`;
   }
 });
 
@@ -990,7 +998,7 @@ document.getElementById('gphoto-change-btn').addEventListener('click', async () 
 });
 
 document.getElementById('gphoto-disconnect-btn').addEventListener('click', async () => {
-  if (!confirm('לנתק את Google Photos?')) return;
+  if (!confirm('לנתק את Google Drive?')) return;
   await api('POST', '/api/google-disconnect', {});
   gphotoStatus = { connected: false, albumId: null, albumName: '' };
   photoSource  = 'local';
