@@ -1027,6 +1027,21 @@ body.edit-mode .edit-only-inline { display: inline-flex !important; }
   header h1 { font-size: 1.25rem; }
   /* slideshow uses aspect-ratio: 16/9 — no fixed height needed */
   .section { padding: 0 1rem; }
+
+  /* ── Calendar — compact on mobile ── */
+  .cal-day {
+    min-height: 44px;
+    padding: 0.2rem 0.15rem;
+  }
+  .cal-dow {
+    padding: 0.35rem 0.1rem;
+    font-size: 0.68rem;
+  }
+  .cal-day-num {
+    font-size: 0.7rem;
+    margin-bottom: 0.1rem;
+  }
+  .cal-appt-label { display: none; } /* hide appointment tags on mobile — too cramped */
 }
 
 /* ── Message Board ───────────────────────────────────────────────────────── */
