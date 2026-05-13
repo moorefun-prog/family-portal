@@ -13,6 +13,7 @@ let gphotoStatus = { connected: false, albumId: null, albumName: '' };
 let currentUser = null;   // logged-in name, 'guest', or 'admin'
 let userRole    = null;   // 'admin' | 'member' | 'guest'
 let calSelectedDate = null;   // ISO date string of the currently selected calendar day
+let _editingApptId  = null;   // id of appointment being edited, or null when adding
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
@@ -1217,7 +1218,9 @@ function showDayDetail(dateStr) {
             <div class="appt-title">${esc(a.title)}</div>
             <div class="appt-date">${esc(a.person)}${a.time ? ' · ' + a.time : ''}</div>
           </div>
-          ${canDelete ? `<button class="btn-icon" onclick="deleteCalendarAppointment('${a.id}')" title="מחק">🗑️</button>` : ''}
+          ${canDelete ? `
+            <button class="btn-icon" onclick="editCalendarAppointment('${a.id}')" title="ערוך">✏️</button>
+            <button class="btn-icon" onclick="deleteCalendarAppointment('${a.id}')" title="מחק">🗑️</button>` : ''}
         </div>`;
       }).join('')
     : `<div class="no-appointments">אין פגישות ביום זה</div>`;
@@ -1246,7 +1249,33 @@ function showCalApptForm() {
   document.getElementById('cal-add-appt-btn').classList.add('hidden');
 }
 
+function editCalendarAppointment(id) {
+  const a = appointments.find(x => x.id === id);
+  if (!a) return;
+  _editingApptId = id;
+
+  document.getElementById('cal-appt-title').value = a.title;
+  document.getElementById('cal-appt-time').innerHTML = timeSelectOptions();
+  document.getElementById('cal-appt-time').value = a.time || '';
+  document.getElementById('cal-appt-save-btn').textContent = 'עדכן';
+
+  const memberSel = document.getElementById('cal-appt-member');
+  if (userRole === 'admin') {
+    const allMembers = [...(config.members || []), 'הרשי'];
+    memberSel.innerHTML = allMembers.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    memberSel.value = a.person;
+    memberSel.classList.remove('hidden');
+  } else {
+    memberSel.classList.add('hidden');
+  }
+
+  document.getElementById('cal-add-appt-form').classList.remove('hidden');
+  document.getElementById('cal-add-appt-btn').classList.add('hidden');
+}
+
 function hideCalApptForm() {
+  _editingApptId = null;
+  document.getElementById('cal-appt-save-btn').textContent = 'הוסף';
   document.getElementById('cal-add-appt-form').classList.add('hidden');
   document.getElementById('cal-add-appt-btn').classList.remove('hidden');
 }
@@ -1262,9 +1291,18 @@ async function saveCalendarAppointment() {
   if (!title) { alert('נא להזין שם פגישה'); return; }
   if (!calSelectedDate) return;
 
-  appointments.push({ id: Math.random().toString(36).slice(2), person, title, date: calSelectedDate, time });
-  await api('POST', '/api/appointments', appointments);
+  if (_editingApptId) {
+    // Edit existing appointment
+    appointments = appointments.map(a =>
+      a.id === _editingApptId ? { ...a, title, time, person } : a
+    );
+    _editingApptId = null;
+  } else {
+    // Add new appointment
+    appointments.push({ id: Math.random().toString(36).slice(2), person, title, date: calSelectedDate, time });
+  }
 
+  await api('POST', '/api/appointments', appointments);
   renderCalendar();
   showDayDetail(calSelectedDate);
 }
