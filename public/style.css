@@ -1489,3 +1489,52 @@ footer         { padding-right: calc(76px + 2.5rem); }
   .spotify-full-wrap iframe { border-radius: var(--radius-sm); }
 }
 
+/* ── Change Password Modal ───────────────────────────────────────────────── */
+
+.change-pwd-modal {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(13,45,69,0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.change-pwd-modal.hidden { display: none; }
+
+.change-pwd-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem 2rem 1.5rem;
+  width: min(340px, 92vw);
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.change-pwd-box h3 {
+  font-size: 1.2rem; font-weight: 700;
+  color: var(--text); text-align: center;
+}
+.change-pwd-form {
+  display: flex; flex-direction: column; gap: .75rem;
+}
+.change-pwd-form input {
+  width: 100%; padding: .65rem 1rem;
+  border: 1.5px solid var(--border); border-radius: var(--radius-xs);
+  font-family: inherit; font-size: 1rem; direction: rtl;
+}
+.cpwd-error {
+  color: var(--danger); font-size: .85rem; text-align: center;
+}
+.cpwd-error.hidden { display: none; }
+
+/* ── Calendar add-appointment inline form ───────────────────────────────── */
+
+.cal-add-appt-form {
+  display: flex; flex-direction: column; gap: .5rem;
+  margin-top: .75rem; padding-top: .75rem;
+  border-top: 1px solid var(--border);
+}
+.cal-add-appt-form.hidden { display: none; }
+.cal-add-appt-form input,
+.cal-add-appt-form select {
+  width: 100%; padding: .55rem .8rem;
+  border: 1.5px solid var(--border); border-radius: var(--radius-xs);
+  font-family: inherit; font-size: .95rem; direction: rtl;
+}
+
