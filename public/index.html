@@ -62,6 +62,23 @@
     </div>
   </div>
 
+  <!-- Change Password Modal -->
+  <div id="change-pwd-modal" class="change-pwd-modal hidden">
+    <div class="change-pwd-box">
+      <h3>שינוי סיסמה</h3>
+      <div class="change-pwd-form">
+        <input type="password" id="cpwd-current" placeholder="סיסמה נוכחית" autocomplete="current-password">
+        <input type="password" id="cpwd-new" placeholder="סיסמה חדשה" autocomplete="new-password">
+        <input type="password" id="cpwd-confirm" placeholder="אימות סיסמה חדשה" autocomplete="new-password">
+        <p id="cpwd-error" class="cpwd-error hidden">שגיאה — בדוק את הפרטים</p>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button id="cpwd-save-btn" class="btn btn-primary btn-sm">שמור</button>
+          <button id="cpwd-cancel-btn" class="btn btn-secondary btn-sm">ביטול</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <header>
     <h1 id="family-name">פורטל המשפחה</h1>
     <div class="header-actions">
@@ -326,6 +343,16 @@
       <div id="cal-day-detail" class="cal-day-detail hidden">
         <h3 id="cal-day-title"></h3>
         <div id="cal-day-appointments"></div>
+        <button id="cal-add-appt-btn" class="btn btn-primary btn-sm" style="margin-top:.75rem">+ הוסף פגישה</button>
+        <div id="cal-add-appt-form" class="cal-add-appt-form hidden">
+          <input type="text" id="cal-appt-title" placeholder="שם הפגישה">
+          <select id="cal-appt-time"></select>
+          <select id="cal-appt-member" class="hidden"></select>
+          <div style="display:flex;gap:.5rem;margin-top:.5rem">
+            <button class="btn btn-primary btn-sm" onclick="saveCalendarAppointment()">הוסף</button>
+            <button class="btn btn-secondary btn-sm" onclick="hideCalApptForm()">ביטול</button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
