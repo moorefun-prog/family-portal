@@ -12,6 +12,7 @@ let photoSource = 'local';   // 'local' | 'google'
 let gphotoStatus = { connected: false, albumId: null, albumName: '' };
 let currentUser = null;   // logged-in name, 'guest', or 'admin'
 let userRole    = null;   // 'admin' | 'member' | 'guest'
+let calSelectedDate = null;   // ISO date string of the currently selected calendar day
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
@@ -1151,6 +1152,7 @@ function renderCalendar() {
 }
 
 function showDayDetail(dateStr) {
+  calSelectedDate = dateStr;
   const appts  = appointments.filter(a => a.date === dateStr);
   const detail = document.getElementById('cal-day-detail');
   const [y, m, d] = dateStr.split('-');
@@ -1167,8 +1169,61 @@ function showDayDetail(dateStr) {
         </div>`).join('')
     : `<div class="no-appointments">אין פגישות ביום זה</div>`;
 
+  // Add-appointment controls — hidden for guests
+  const addBtn = document.getElementById('cal-add-appt-btn');
+  hideCalApptForm();
+
+  if (userRole === 'guest') {
+    addBtn.classList.add('hidden');
+  } else {
+    addBtn.classList.remove('hidden');
+
+    // Member dropdown — admin only
+    const memberSel = document.getElementById('cal-appt-member');
+    const allMembers = [...(config.members || []), 'הרשי'];
+    if (userRole === 'admin') {
+      memberSel.innerHTML = allMembers.map(m =>
+        `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+      memberSel.classList.remove('hidden');
+    } else {
+      memberSel.classList.add('hidden');
+    }
+
+    // Populate time select
+    document.getElementById('cal-appt-time').innerHTML = timeSelectOptions();
+  }
+
   detail.classList.remove('hidden');
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showCalApptForm() {
+  document.getElementById('cal-appt-title').value = '';
+  document.getElementById('cal-appt-time').value = '';
+  document.getElementById('cal-add-appt-form').classList.remove('hidden');
+  document.getElementById('cal-add-appt-btn').classList.add('hidden');
+}
+
+function hideCalApptForm() {
+  document.getElementById('cal-add-appt-form').classList.add('hidden');
+  document.getElementById('cal-add-appt-btn').classList.remove('hidden');
+}
+
+async function saveCalendarAppointment() {
+  const title  = document.getElementById('cal-appt-title').value.trim();
+  const time   = document.getElementById('cal-appt-time').value;
+  const person = userRole === 'admin'
+    ? document.getElementById('cal-appt-member').value
+    : currentUser;
+
+  if (!title) { alert('נא להזין שם פגישה'); return; }
+  if (!calSelectedDate) return;
+
+  appointments.push({ id: Math.random().toString(36).slice(2), person, title, date: calSelectedDate, time });
+  await api('POST', '/api/appointments', appointments);
+
+  renderCalendar();
+  showDayDetail(calSelectedDate);
 }
 
 // ── Chores full page ──────────────────────────────────────────────────────
@@ -1227,6 +1282,8 @@ document.getElementById('clear-done-btn2').addEventListener('click', async () =>
   await api('POST', '/api/chores', chores);
   renderChores();
 });
+
+document.getElementById('cal-add-appt-btn').addEventListener('click', showCalApptForm);
 
 // ── Media full page ───────────────────────────────────────────────────────
 
