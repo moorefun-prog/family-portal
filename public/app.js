@@ -160,7 +160,7 @@ async function submitChangePwd() {
 
   errEl.classList.add('hidden');
 
-  if (!newPassword) { errEl.textContent = 'סיסמה חדשה לא יכולה להיות ריקה'; errEl.classList.remove('hidden'); return; }
+  if (!newPassword.trim()) { errEl.textContent = 'סיסמה חדשה לא יכולה להיות ריקה'; errEl.classList.remove('hidden'); return; }
   if (newPassword !== confirm) { errEl.textContent = 'הסיסמאות אינן תואמות'; errEl.classList.remove('hidden'); return; }
 
   const name = userRole === 'admin' ? 'admin' : currentUser;
@@ -1171,11 +1171,12 @@ function showDayDetail(dateStr) {
 
   // Add-appointment controls — hidden for guests
   const addBtn = document.getElementById('cal-add-appt-btn');
-  hideCalApptForm();
 
   if (userRole === 'guest') {
     addBtn.classList.add('hidden');
+    document.getElementById('cal-add-appt-form').classList.add('hidden');
   } else {
+    hideCalApptForm();
     addBtn.classList.remove('hidden');
 
     // Member dropdown — admin only
@@ -1210,6 +1211,7 @@ function hideCalApptForm() {
 }
 
 async function saveCalendarAppointment() {
+  if (userRole === 'guest') return;
   const title  = document.getElementById('cal-appt-title').value.trim();
   const time   = document.getElementById('cal-appt-time').value;
   const person = userRole === 'admin'
