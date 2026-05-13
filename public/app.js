@@ -108,6 +108,12 @@ document.getElementById('guest-btn').addEventListener('click', () => {
   startPortal();
 });
 
+document.getElementById('cpwd-save-btn').addEventListener('click', submitChangePwd);
+document.getElementById('cpwd-cancel-btn').addEventListener('click', hideChangePwdModal);
+document.getElementById('cpwd-current').addEventListener('keydown', e => { if (e.key === 'Enter') submitChangePwd(); });
+document.getElementById('cpwd-new').addEventListener('keydown', e => { if (e.key === 'Enter') submitChangePwd(); });
+document.getElementById('cpwd-confirm').addEventListener('keydown', e => { if (e.key === 'Enter') submitChangePwd(); });
+
 // ── User pill & logout ─────────────────────────────────────────────────────
 
 function renderUserPill() {
@@ -116,8 +122,12 @@ function renderUserPill() {
   const label = userRole === 'guest' ? 'אורח 👁' :
                 userRole === 'admin' ? '⚙️ מנהל' :
                 currentUser;
+  const changePwdBtn = userRole !== 'guest'
+    ? `<button class="user-pill-switch" onclick="showChangePwdModal()">שנה סיסמה</button>`
+    : '';
   pill.innerHTML =
     `<span class="user-pill-name">${esc(label)}</span>` +
+    changePwdBtn +
     `<button class="user-pill-switch" onclick="logout()">יציאה</button>`;
   pill.classList.remove('hidden');
 }
@@ -125,6 +135,44 @@ function renderUserPill() {
 function logout() {
   clearSession();
   location.reload();
+}
+
+// ── Change Password ────────────────────────────────────────────────────────
+
+function showChangePwdModal() {
+  document.getElementById('cpwd-current').value = '';
+  document.getElementById('cpwd-new').value = '';
+  document.getElementById('cpwd-confirm').value = '';
+  document.getElementById('cpwd-error').classList.add('hidden');
+  document.getElementById('change-pwd-modal').classList.remove('hidden');
+}
+
+function hideChangePwdModal() {
+  document.getElementById('change-pwd-modal').classList.add('hidden');
+}
+
+async function submitChangePwd() {
+  const currentPassword = document.getElementById('cpwd-current').value;
+  const newPassword     = document.getElementById('cpwd-new').value;
+  const confirm         = document.getElementById('cpwd-confirm').value;
+  const errEl           = document.getElementById('cpwd-error');
+
+  errEl.classList.add('hidden');
+
+  if (!newPassword) { errEl.textContent = 'סיסמה חדשה לא יכולה להיות ריקה'; errEl.classList.remove('hidden'); return; }
+  if (newPassword !== confirm) { errEl.textContent = 'הסיסמאות אינן תואמות'; errEl.classList.remove('hidden'); return; }
+
+  const name = userRole === 'admin' ? 'admin' : currentUser;
+  const res = await api('POST', '/api/change-password', { name, currentPassword, newPassword });
+
+  if (!res.ok) {
+    errEl.textContent = 'סיסמה נוכחית שגויה';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  hideChangePwdModal();
+  alert('הסיסמה שונתה בהצלחה ✓');
 }
 
 async function loadConfig() {
