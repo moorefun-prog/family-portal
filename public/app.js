@@ -13,7 +13,10 @@ let gphotoStatus = { connected: false, albumId: null, albumName: '' };
 let currentUser = null;   // logged-in name, 'guest', or 'admin'
 let userRole    = null;   // 'admin' | 'member' | 'guest'
 let calSelectedDate = null;   // ISO date string of the currently selected calendar day
-let _editingApptId  = null;   // id of appointment being edited, or null when adding
+let _editingApptId  = null;   // id of appointment being edited in calendar panel
+let _selectedApptId     = null;   // id of selected appointment in main appointments page
+let _selectedApptColumn = null;   // safeid of the member column with the selection
+let _editingMainApptId  = null;   // id of appointment being edited in main appointments page
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
@@ -445,14 +448,20 @@ function buildMemberColumn(member, showAddBtn) {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const items = memberAppts.length
-    ? memberAppts.map(a => `
-        <div class="appointment-item">
+    ? memberAppts.map(a => {
+        const canAct  = userRole === 'admin' || (userRole === 'member' && a.person === currentUser);
+        const clickable = canAct && !editMode;
+        return `
+        <div class="appointment-item${clickable ? ' appt-clickable' : ''}"
+             data-id="${a.id}"
+             ${clickable ? `onclick="selectAppointment('${a.id}', '${safeid(member)}')"` : ''}>
           <div class="appt-info">
             <div class="appt-title">${esc(a.title)}</div>
             <div class="appt-date">${formatDate(a.date)}${a.time ? ' ' + a.time : ''}</div>
           </div>
-          <button class="btn-icon edit-only hidden" onclick="deleteAppointment('${a.id}')" title="מחק">🗑️</button>
-        </div>`).join('')
+          <button class="btn-icon edit-only hidden" onclick="event.stopPropagation();deleteAppointment('${a.id}')" title="מחק">🗑️</button>
+        </div>`;
+      }).join('')
     : `<div class="no-appointments">אין פגישות קרובות</div>`;
 
   const avatarFile = (config.avatars || {})[member];
@@ -483,12 +492,18 @@ function buildMemberColumn(member, showAddBtn) {
           <button class="btn btn-secondary btn-sm" onclick="hideApptForm('${safeid(member)}')">ביטול</button>
         </div>
       </div>
-      ${showAddBtn ? `<button class="btn btn-primary btn-sm add-appt-btn"
+      <div id="appt-actions-${safeid(member)}" class="appt-actions hidden">
+        <button class="btn btn-secondary btn-sm" onclick="editSelectedAppointment()">✏️ ערוך</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSelectedAppointment()">🗑️ מחק</button>
+        <button class="btn btn-secondary btn-sm" onclick="deselectAppointment()">ביטול</button>
+      </div>
+      ${showAddBtn ? `<button id="add-appt-btn-${safeid(member)}" class="btn btn-primary btn-sm add-appt-btn"
           onclick="showApptForm('${safeid(member)}')">+ הוסף פגישה</button>` : ''}
     </div>`;
 }
 
 function renderAppointments() {
+  _selectedApptId = null; _selectedApptColumn = null; _editingMainApptId = null;
   const grid = document.getElementById('appointments-grid');
   const members = config.members || [];
 
@@ -510,18 +525,99 @@ function showApptForm(id) {
   document.getElementById(`appt-form-${id}`).classList.remove('hidden');
 }
 function hideApptForm(id) {
-  document.getElementById(`appt-form-${id}`).classList.add('hidden');
+  const form = document.getElementById(`appt-form-${id}`);
+  if (form) form.classList.add('hidden');
+  // Reset save button text
+  const saveBtn = form?.querySelector('.btn-primary');
+  if (saveBtn) saveBtn.textContent = 'הוסף';
+  deselectAppointment();
+}
+
+// ── Appointment selection (main page) ──────────────────────────────────────
+
+function selectAppointment(id, columnId) {
+  if (_selectedApptId === id) { deselectAppointment(); return; }
+  deselectAppointment();
+
+  _selectedApptId     = id;
+  _selectedApptColumn = columnId;
+
+  // Highlight selected item
+  const item = document.querySelector(`.appointment-item[data-id="${id}"]`);
+  if (item) item.classList.add('appt-selected');
+
+  // Swap add button → actions bar
+  const addBtn  = document.getElementById(`add-appt-btn-${columnId}`);
+  const actions = document.getElementById(`appt-actions-${columnId}`);
+  if (addBtn)  addBtn.classList.add('hidden');
+  if (actions) actions.classList.remove('hidden');
+}
+
+function deselectAppointment() {
+  if (!_selectedApptId) return;
+
+  document.querySelectorAll('.appointment-item.appt-selected')
+    .forEach(el => el.classList.remove('appt-selected'));
+
+  if (_selectedApptColumn) {
+    const addBtn  = document.getElementById(`add-appt-btn-${_selectedApptColumn}`);
+    const actions = document.getElementById(`appt-actions-${_selectedApptColumn}`);
+    const form    = document.getElementById(`appt-form-${_selectedApptColumn}`);
+    if (actions) actions.classList.add('hidden');
+    if (form)    { form.classList.add('hidden'); const sb = form.querySelector('.btn-primary'); if (sb) sb.textContent = 'הוסף'; }
+    if (addBtn)  addBtn.classList.remove('hidden');
+  }
+
+  _selectedApptId     = null;
+  _selectedApptColumn = null;
+  _editingMainApptId  = null;
+}
+
+function editSelectedAppointment() {
+  if (!_selectedApptId || !_selectedApptColumn) return;
+  const a = appointments.find(x => x.id === _selectedApptId);
+  if (!a) return;
+
+  _editingMainApptId = _selectedApptId;
+
+  // Pre-fill form
+  document.getElementById(`appt-title-${_selectedApptColumn}`).value = a.title;
+  document.getElementById(`appt-date-${_selectedApptColumn}`).value  = a.date;
+  document.getElementById(`appt-time-${_selectedApptColumn}`).value  = a.time || '';
+
+  // Switch button label
+  const form   = document.getElementById(`appt-form-${_selectedApptColumn}`);
+  const saveBtn = form?.querySelector('.btn-primary');
+  if (saveBtn) saveBtn.textContent = 'עדכן';
+
+  // Hide actions, show form
+  document.getElementById(`appt-actions-${_selectedApptColumn}`)?.classList.add('hidden');
+  showApptForm(_selectedApptColumn);
+}
+
+function deleteSelectedAppointment() {
+  if (!_selectedApptId) return;
+  deleteAppointment(_selectedApptId);
 }
 
 async function saveAppointment(member) {
-  const id = safeid(member);
+  const id    = safeid(member);
   const title = document.getElementById(`appt-title-${id}`).value.trim();
-  const date = document.getElementById(`appt-date-${id}`).value;
-  const time = document.getElementById(`appt-time-${id}`).value.trim();
+  const date  = document.getElementById(`appt-date-${id}`).value;
+  const time  = document.getElementById(`appt-time-${id}`).value;
   if (!title || !date) return alert('נא למלא שם ותאריך');
 
-  const { v4: uuidv4 } = { v4: () => Math.random().toString(36).slice(2) };
-  appointments.push({ id: uuidv4(), person: member, title, date, time });
+  if (_editingMainApptId) {
+    appointments = appointments.map(a =>
+      a.id === _editingMainApptId ? { ...a, title, date, time } : a
+    );
+  } else {
+    appointments.push({ id: Math.random().toString(36).slice(2), person: member, title, date, time });
+  }
+
+  _selectedApptId     = null;
+  _selectedApptColumn = null;
+  _editingMainApptId  = null;
   await api('POST', '/api/appointments', appointments);
   renderAppointments();
 }
