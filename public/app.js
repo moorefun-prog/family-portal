@@ -1132,7 +1132,7 @@ function renderCalendar() {
       const apptTags = appts.slice(0, 3).map(a =>
         `<span class="cal-appt-label">${esc(a.title)}</span>`).join('');
 
-      html += `<div class="${cls}" onclick="showDayDetail('${dateStr}')">
+      html += `<div class="${cls}" data-date="${dateStr}" onclick="showDayDetail('${dateStr}')">
         <div class="cal-day-num">${d.getDate()}</div>
         ${apptTags}
       </div>`;
@@ -1142,7 +1142,20 @@ function renderCalendar() {
   }
 
   grid.innerHTML = html;
-  document.getElementById('cal-day-detail').classList.add('hidden');
+
+  // Re-apply selected highlight if a date is still selected in this month
+  if (calSelectedDate) {
+    const sel = grid.querySelector(`[data-date="${calSelectedDate}"]`);
+    if (sel) sel.classList.add('selected');
+    else document.getElementById('cal-day-detail').classList.add('hidden'); // navigated away from selected month
+  } else {
+    document.getElementById('cal-day-detail').classList.add('hidden');
+  }
+
+  // Show/hide add button based on role
+  const addBtn = document.getElementById('cal-add-appt-btn');
+  if (userRole !== 'guest') addBtn.classList.remove('hidden');
+  else addBtn.classList.add('hidden');
 
   // Nav buttons (reassign each render to avoid stacking listeners)
   const prevBtn = document.getElementById('cal-prev-btn');
@@ -1153,6 +1166,11 @@ function renderCalendar() {
 
 function showDayDetail(dateStr) {
   calSelectedDate = dateStr;
+
+  // Highlight selected date
+  document.querySelectorAll('.cal-day').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`.cal-day[data-date="${dateStr}"]`)?.classList.add('selected');
+
   const appts  = appointments.filter(a => a.date === dateStr);
   const detail = document.getElementById('cal-day-detail');
   const [y, m, d] = dateStr.split('-');
@@ -1169,38 +1187,26 @@ function showDayDetail(dateStr) {
         </div>`).join('')
     : `<div class="no-appointments">אין פגישות ביום זה</div>`;
 
-  // Add-appointment controls — hidden for guests
-  const addBtn = document.getElementById('cal-add-appt-btn');
-
-  if (userRole === 'guest') {
-    addBtn.classList.add('hidden');
-    document.getElementById('cal-add-appt-form').classList.add('hidden');
-  } else {
-    hideCalApptForm();
-    addBtn.classList.remove('hidden');
-
-    // Member dropdown — admin only
-    const memberSel = document.getElementById('cal-appt-member');
-    const allMembers = [...(config.members || []), 'הרשי'];
-    if (userRole === 'admin') {
-      memberSel.innerHTML = allMembers.map(m =>
-        `<option value="${esc(m)}">${esc(m)}</option>`).join('');
-      memberSel.classList.remove('hidden');
-    } else {
-      memberSel.classList.add('hidden');
-    }
-
-    // Populate time select
-    document.getElementById('cal-appt-time').innerHTML = timeSelectOptions();
-  }
-
   detail.classList.remove('hidden');
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function showCalApptForm() {
+  if (!calSelectedDate) { alert('נא לבחור תאריך בלוח תחילה'); return; }
+
   document.getElementById('cal-appt-title').value = '';
-  document.getElementById('cal-appt-time').value = '';
+  document.getElementById('cal-appt-time').innerHTML = timeSelectOptions();
+
+  // Member dropdown — admin only
+  const memberSel = document.getElementById('cal-appt-member');
+  if (userRole === 'admin') {
+    const allMembers = [...(config.members || []), 'הרשי'];
+    memberSel.innerHTML = allMembers.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    memberSel.classList.remove('hidden');
+  } else {
+    memberSel.classList.add('hidden');
+  }
+
   document.getElementById('cal-add-appt-form').classList.remove('hidden');
   document.getElementById('cal-add-appt-btn').classList.add('hidden');
 }

@@ -343,15 +343,15 @@
       <div id="cal-day-detail" class="cal-day-detail hidden">
         <h3 id="cal-day-title"></h3>
         <div id="cal-day-appointments"></div>
-        <button id="cal-add-appt-btn" class="btn btn-primary btn-sm" style="margin-top:.75rem">+ הוסף פגישה</button>
-        <div id="cal-add-appt-form" class="cal-add-appt-form hidden">
-          <input type="text" id="cal-appt-title" placeholder="שם הפגישה">
-          <select id="cal-appt-time"></select>
-          <select id="cal-appt-member" class="hidden"></select>
-          <div style="display:flex;gap:.5rem;margin-top:.5rem">
-            <button class="btn btn-primary btn-sm" onclick="saveCalendarAppointment()">הוסף</button>
-            <button class="btn btn-secondary btn-sm" onclick="hideCalApptForm()">ביטול</button>
-          </div>
+      </div>
+      <button id="cal-add-appt-btn" class="btn btn-primary cal-add-btn-static hidden">+ הוסף פגישה</button>
+      <div id="cal-add-appt-form" class="cal-add-appt-form hidden">
+        <input type="text" id="cal-appt-title" placeholder="שם הפגישה">
+        <select id="cal-appt-time"></select>
+        <select id="cal-appt-member" class="hidden"></select>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn btn-primary btn-sm" onclick="saveCalendarAppointment()">הוסף</button>
+          <button class="btn btn-secondary btn-sm" onclick="hideCalApptForm()">ביטול</button>
         </div>
       </div>
     </section>

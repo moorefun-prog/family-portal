@@ -1302,6 +1302,10 @@ footer         { padding-right: calc(76px + 2.5rem); }
   font-weight: 800;
 }
 .cal-day.has-appts { border-right: 3px solid var(--primary); }
+.cal-day.selected { background: var(--primary-light); outline: 2px solid var(--primary); outline-offset: -2px; }
+.cal-day.selected .cal-day-num { font-weight: 800; color: var(--primary); }
+
+.cal-add-btn-static { width: 100%; margin-top: 1rem; }
 
 .cal-day-num {
   font-size: 0.8rem;
