@@ -260,7 +260,14 @@ async function getGoogleToken() {
     })
   });
   const data = await r.json();
-  if (data.error) return null;
+  if (data.error) {
+    // Refresh token expired or revoked — clear stale token and cache
+    // so the UI shows "not connected" instead of silently serving old photos
+    console.warn('[Google] Token refresh failed:', data.error, data.error_description);
+    try { fs.unlinkSync(GOOGLE_TOKEN_FILE); } catch {}
+    photoUrlCache = { urls: [], albumId: null, fetchedAt: 0 };
+    return null;
+  }
   token.access_token = data.access_token;
   token.expires_at   = Date.now() + (data.expires_in - 60) * 1000;
   writeGoogleToken(token);
