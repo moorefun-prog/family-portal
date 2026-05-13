@@ -17,6 +17,8 @@ let _editingApptId  = null;   // id of appointment being edited in calendar pane
 let _selectedApptId     = null;   // id of selected appointment in main appointments page
 let _selectedApptColumn = null;   // safeid of the member column with the selection
 let _editingMainApptId  = null;   // id of appointment being edited in main appointments page
+let _prevAlbumId   = null;        // saved album id when "שנה תיקייה" is open
+let _prevAlbumName = '';          // saved album name when "שנה תיקייה" is open
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
@@ -924,6 +926,7 @@ function renderGPhotoPanel() {
   connedRow.classList.add('hidden');
   picker.classList.add('hidden');
   actions.classList.add('hidden');
+  document.getElementById('gphoto-cancel-album-btn').classList.add('hidden');
 
   if (!s.connected) {
     ind.textContent  = '🔴';
@@ -992,8 +995,22 @@ document.getElementById('gphoto-refresh-btn').addEventListener('click', async ()
 });
 
 document.getElementById('gphoto-change-btn').addEventListener('click', async () => {
+  // Save current selection so "בטל" can restore it
+  _prevAlbumId   = gphotoStatus.albumId;
+  _prevAlbumName = gphotoStatus.albumName;
   gphotoStatus.albumId   = null;
   gphotoStatus.albumName = '';
+  renderGPhotoPanel();
+  // Show the cancel button only when changing (not on first-time connect)
+  document.getElementById('gphoto-cancel-album-btn').classList.remove('hidden');
+});
+
+document.getElementById('gphoto-cancel-album-btn').addEventListener('click', () => {
+  // Restore previous folder selection
+  gphotoStatus.albumId   = _prevAlbumId;
+  gphotoStatus.albumName = _prevAlbumName;
+  _prevAlbumId   = null;
+  _prevAlbumName = '';
   renderGPhotoPanel();
 });
 
