@@ -371,61 +371,81 @@ document.getElementById('photo-upload').addEventListener('change', async (e) => 
 
 // ── Appointments ───────────────────────────────────────────────────────────
 
+function timeSelectOptions() {
+  let opts = '<option value="">-- שעה --</option>';
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      const v = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      opts += `<option value="${v}">${v}</option>`;
+    }
+  }
+  return opts;
+}
+
+function buildMemberColumn(member, showAddBtn) {
+  const memberAppts = appointments
+    .filter(a => a.person === member)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const items = memberAppts.length
+    ? memberAppts.map(a => `
+        <div class="appointment-item">
+          <div class="appt-info">
+            <div class="appt-title">${esc(a.title)}</div>
+            <div class="appt-date">${formatDate(a.date)}${a.time ? ' ' + a.time : ''}</div>
+          </div>
+          <button class="btn-icon edit-only hidden" onclick="deleteAppointment('${a.id}')" title="מחק">🗑️</button>
+        </div>`).join('')
+    : `<div class="no-appointments">אין פגישות קרובות</div>`;
+
+  const avatarFile = (config.avatars || {})[member];
+  const avatarHtml = avatarFile
+    ? `<img src="/avatars/${encodeURIComponent(avatarFile)}" alt="${esc(member)}">`
+    : `<span class="avatar-initials">${esc(member.charAt(0))}</span>`;
+
+  return `
+    <div class="member-column">
+      <div class="member-header">
+        <div class="avatar-wrap">
+          <div class="avatar-circle" onclick="triggerAvatarUpload('${esc(member)}')" title="לחץ להחלפת תמונה">
+            ${avatarHtml}
+          </div>
+          <input type="file" class="avatar-input" id="avatar-input-${safeid(member)}"
+            accept="image/*" style="display:none"
+            onchange="uploadAvatar('${esc(member)}', this)">
+        </div>
+        <h3>${esc(member)}</h3>
+      </div>
+      ${items}
+      <div class="add-appt-form hidden" id="appt-form-${safeid(member)}">
+        <input type="text" id="appt-title-${safeid(member)}" placeholder="שם הפגישה">
+        <input type="date" id="appt-date-${safeid(member)}">
+        <select id="appt-time-${safeid(member)}">${timeSelectOptions()}</select>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn btn-primary btn-sm" onclick="saveAppointment('${member}')">הוסף</button>
+          <button class="btn btn-secondary btn-sm" onclick="hideApptForm('${safeid(member)}')">ביטול</button>
+        </div>
+      </div>
+      ${showAddBtn ? `<button class="btn btn-primary btn-sm add-appt-btn"
+          onclick="showApptForm('${safeid(member)}')">+ הוסף פגישה</button>` : ''}
+    </div>`;
+}
+
 function renderAppointments() {
   const grid = document.getElementById('appointments-grid');
   const members = config.members || [];
 
-  grid.innerHTML = members.map(member => {
-    const memberAppts = appointments
-      .filter(a => a.person === member)
-      .sort((a, b) => a.date.localeCompare(b.date));
+  const cols = members.map(member => {
+    const showAddBtn = userRole === 'admin'
+      || (!editMode && currentUser === member)
+      || (editMode && userRole !== 'guest');
+    return buildMemberColumn(member, showAddBtn);
+  });
 
-    const items = memberAppts.length
-      ? memberAppts.map(a => `
-          <div class="appointment-item">
-            <div class="appt-info">
-              <div class="appt-title">${esc(a.title)}</div>
-              <div class="appt-date">${formatDate(a.date)}${a.time ? ' ' + a.time : ''}</div>
-            </div>
-            <button class="btn-icon edit-only hidden" onclick="deleteAppointment('${a.id}')" title="מחק">🗑️</button>
-          </div>`).join('')
-      : `<div class="no-appointments">אין פגישות קרובות</div>`;
+  // הרשי — appointment card only, add button for admin only
+  cols.push(buildMemberColumn('הרשי', userRole === 'admin'));
 
-    const avatarFile = (config.avatars || {})[member];
-    const avatarHtml = avatarFile
-      ? `<img src="/avatars/${encodeURIComponent(avatarFile)}" alt="${esc(member)}">`
-      : `<span class="avatar-initials">${esc(member.charAt(0))}</span>`;
-
-    return `
-      <div class="member-column">
-        <div class="member-header">
-          <div class="avatar-wrap">
-            <div class="avatar-circle" onclick="triggerAvatarUpload('${esc(member)}')" title="לחץ להחלפת תמונה">
-              ${avatarHtml}
-            </div>
-            <input type="file" class="avatar-input" id="avatar-input-${safeid(member)}"
-              accept="image/*" style="display:none"
-              onchange="uploadAvatar('${esc(member)}', this)">
-          </div>
-          <h3>${esc(member)}</h3>
-        </div>
-        ${items}
-        <div class="add-appt-form hidden" id="appt-form-${safeid(member)}">
-          <input type="text" id="appt-title-${safeid(member)}" placeholder="שם הפגישה">
-          <input type="date" id="appt-date-${safeid(member)}">
-          <input type="text" id="appt-time-${safeid(member)}" placeholder="שעה (לדוגמה 10:00)">
-          <div style="display:flex;gap:.5rem">
-            <button class="btn btn-primary btn-sm" onclick="saveAppointment('${member}')">הוסף</button>
-            <button class="btn btn-secondary btn-sm" onclick="hideApptForm('${safeid(member)}')">ביטול</button>
-          </div>
-        </div>
-        ${(userRole === 'admin' || (!editMode && currentUser === member) || (editMode && userRole !== 'guest'))
-          ? `<button class="btn btn-primary btn-sm add-appt-btn"
-              onclick="showApptForm('${safeid(member)}')">+ הוסף פגישה</button>`
-          : ''}
-      </div>`;
-  }).join('');
-
+  grid.innerHTML = cols.join('');
   if (editMode) revealEditControls();
 }
 
