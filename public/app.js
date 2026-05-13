@@ -109,6 +109,13 @@ document.getElementById('guest-btn').addEventListener('click', () => {
   startPortal();
 });
 
+document.getElementById('confirm-delete-yes').addEventListener('click', async () => {
+  const cb = _pendingDeleteCallback;
+  hideConfirmDelete();
+  if (cb) await cb();
+});
+document.getElementById('confirm-delete-no').addEventListener('click', hideConfirmDelete);
+
 document.getElementById('cpwd-save-btn').addEventListener('click', submitChangePwd);
 document.getElementById('cpwd-cancel-btn').addEventListener('click', hideChangePwdModal);
 document.getElementById('cpwd-current').addEventListener('keydown', e => { if (e.key === 'Enter') submitChangePwd(); });
@@ -518,11 +525,35 @@ async function saveAppointment(member) {
   renderAppointments();
 }
 
+let _pendingDeleteId   = null;
+let _pendingDeleteCallback = null;
+
+function showConfirmDelete(id, onConfirm) {
+  _pendingDeleteId       = id;
+  _pendingDeleteCallback = onConfirm;
+  document.getElementById('confirm-delete-modal').classList.remove('hidden');
+}
+function hideConfirmDelete() {
+  _pendingDeleteId       = null;
+  _pendingDeleteCallback = null;
+  document.getElementById('confirm-delete-modal').classList.add('hidden');
+}
+
 async function deleteAppointment(id) {
-  if (!confirm('למחוק פגישה זו?')) return;
-  appointments = appointments.filter(a => a.id !== id);
-  await api('POST', '/api/appointments', appointments);
-  renderAppointments();
+  showConfirmDelete(id, async () => {
+    appointments = appointments.filter(a => a.id !== id);
+    await api('POST', '/api/appointments', appointments);
+    renderAppointments();
+  });
+}
+
+async function deleteCalendarAppointment(id) {
+  showConfirmDelete(id, async () => {
+    appointments = appointments.filter(a => a.id !== id);
+    await api('POST', '/api/appointments', appointments);
+    renderCalendar();
+    if (calSelectedDate) showDayDetail(calSelectedDate);
+  });
 }
 
 // ── Avatars ────────────────────────────────────────────────────────────────
@@ -1178,13 +1209,17 @@ function showDayDetail(dateStr) {
 
   const list = document.getElementById('cal-day-appointments');
   list.innerHTML = appts.length
-    ? appts.map(a => `
+    ? appts.map(a => {
+        const canDelete = userRole === 'admin' || (userRole === 'member' && a.person === currentUser);
+        return `
         <div class="appointment-item">
           <div class="appt-info">
             <div class="appt-title">${esc(a.title)}</div>
             <div class="appt-date">${esc(a.person)}${a.time ? ' · ' + a.time : ''}</div>
           </div>
-        </div>`).join('')
+          ${canDelete ? `<button class="btn-icon" onclick="deleteCalendarAppointment('${a.id}')" title="מחק">🗑️</button>` : ''}
+        </div>`;
+      }).join('')
     : `<div class="no-appointments">אין פגישות ביום זה</div>`;
 
   detail.classList.remove('hidden');

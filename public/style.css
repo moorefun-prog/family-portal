@@ -1508,6 +1508,38 @@ footer         { padding-right: calc(76px + 2.5rem); }
   .spotify-full-wrap iframe { border-radius: var(--radius-sm); }
 }
 
+/* ── Delete Confirmation Modal ───────────────────────────────────────────── */
+
+.confirm-modal {
+  position: fixed; inset: 0; z-index: 4000;
+  background: rgba(13,45,69,0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.confirm-modal.hidden { display: none; }
+
+.confirm-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 1.75rem 2rem;
+  width: min(320px, 90vw);
+  text-align: center;
+  display: flex; flex-direction: column; gap: 1.25rem;
+}
+.confirm-msg {
+  font-size: 1rem; font-weight: 600; color: var(--text); line-height: 1.5;
+}
+.confirm-actions {
+  display: flex; gap: .75rem; justify-content: center;
+}
+.btn-danger {
+  background: var(--danger); color: white; border: none;
+  padding: .55rem 1.2rem; border-radius: 50px;
+  font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.btn-danger:hover { background: var(--danger-hover); }
+
 /* ── Change Password Modal ───────────────────────────────────────────────── */
 
 .change-pwd-modal {
