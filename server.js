@@ -115,6 +115,28 @@ app.post('/api/login', (req, res) => {
   res.json({ ok: true, role: 'member' });
 });
 
+app.post('/api/change-password', (req, res) => {
+  const { name, currentPassword, newPassword } = req.body;
+  if (!name || newPassword === undefined) return res.json({ ok: false, error: 'missing_fields' });
+
+  const config = readJSON('config.json');
+
+  if (name === 'admin') {
+    const adminPwd = config.adminPassword || 'admin123';
+    if (currentPassword !== adminPwd) return res.json({ ok: false, error: 'wrong_password' });
+    config.adminPassword = newPassword;
+  } else {
+    if (!config.members.includes(name)) return res.json({ ok: false, error: 'unknown_user' });
+    const stored = (config.passwords || {})[name] || '';
+    if (currentPassword !== stored) return res.json({ ok: false, error: 'wrong_password' });
+    if (!config.passwords) config.passwords = {};
+    config.passwords[name] = newPassword;
+  }
+
+  writeJSON('config.json', config);
+  res.json({ ok: true });
+});
+
 // Config
 app.get('/api/config', (req, res) => res.json(readJSON('config.json')));
 app.post('/api/config', (req, res) => {
