@@ -856,7 +856,7 @@ body.edit-mode .avatar-circle::after {
 .appointment-item.appt-clickable:hover { background: var(--primary-light); padding-right: .4rem; }
 .appointment-item.appt-selected { background: var(--primary-light); padding-right: .4rem; outline: 2px solid var(--primary); outline-offset: -2px; border-radius: var(--radius-xs); }
 
-.appt-actions { display: flex; gap: .4rem; margin-top: .5rem; flex-wrap: wrap; }
+.appt-actions { display: flex; gap: .4rem; margin-top: .5rem; flex-wrap: nowrap; align-items: center; }
 
 .appt-info { flex: 1; }
 .appt-title { font-weight: 600; font-size: 0.92rem; }
