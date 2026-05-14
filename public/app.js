@@ -1217,7 +1217,17 @@ function navigate(pageId) {
 
   currentPage = pageId;
 
-  if (pageId === 'calendar') renderCalendar();
+  if (pageId === 'calendar') {
+    // Always reset to today's month and clear any previous selection
+    const today = new Date();
+    calYear         = today.getFullYear();
+    calMonth        = today.getMonth();
+    calSelectedDate = null;
+    document.getElementById('cal-day-detail').classList.add('hidden');
+    document.getElementById('cal-add-appt-btn').classList.add('hidden');
+    hideCalApptForm();
+    renderCalendar();
+  }
   else if (pageId === 'chores')  renderChores2();
   else if (pageId === 'media')   renderMediaFull();
   else if (pageId === 'spotify') syncFullPlayer();
