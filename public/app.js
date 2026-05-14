@@ -1,5 +1,62 @@
 'use strict';
 
+// ── Dynamic favicon: calendar icon showing today's date ────────────────────
+(function setDynamicFavicon() {
+  try {
+    const S   = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = S; canvas.height = S;
+    const ctx = canvas.getContext('2d');
+    const day = new Date().getDate();
+
+    // White calendar body
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(2, 8, 60, 54, 7);
+    else ctx.rect(2, 8, 60, 54);
+    ctx.fill();
+
+    // Blue header strip
+    ctx.fillStyle = '#1a8fd1';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(2, 8, 60, 22, [7, 7, 0, 0]);
+    else ctx.rect(2, 8, 60, 22);
+    ctx.fill();
+
+    // Blue border around calendar
+    ctx.strokeStyle = '#1a8fd1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(2, 8, 60, 54, 7);
+    else ctx.rect(2, 8, 60, 54);
+    ctx.stroke();
+
+    // Binding pins at top
+    ctx.strokeStyle = '#0a4a7a';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    [18, 46].forEach(x => {
+      ctx.beginPath(); ctx.moveTo(x, 3); ctx.lineTo(x, 16); ctx.stroke();
+    });
+
+    // Date number
+    ctx.fillStyle = '#1a8fd1';
+    ctx.font = 'bold 30px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(day), S / 2, 46);
+
+    const link = document.getElementById('favicon-link') ||
+                 document.querySelector("link[rel='icon']");
+    if (link) link.href = canvas.toDataURL();
+  } catch (e) { /* silently skip if canvas not supported */ }
+
+  // Re-run at the next midnight so the date stays current
+  const now = new Date();
+  const msTillMidnight = +new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+  setTimeout(setDynamicFavicon, msTillMidnight);
+})();
+
 let config = {};
 let appointments = [];
 let chores = [];

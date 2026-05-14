@@ -1263,6 +1263,12 @@ footer         { padding-right: calc(76px + 2.5rem); }
 
 /* ── Calendar ────────────────────────────────────────────────────────────── */
 
+.cal-nav-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .cal-month-label {
   font-size: 1rem;
   font-weight: 800;
@@ -1511,6 +1517,17 @@ footer         { padding-right: calc(76px + 2.5rem); }
 
   /* Full page embed takes full width */
   .spotify-full-wrap iframe { border-radius: var(--radius-sm); }
+
+  /* Calendar page: title on top-right, nav centered below */
+  .cal-section-header {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.4rem;
+  }
+  .cal-nav-row {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ── Delete Confirmation Modal ───────────────────────────────────────────── */
