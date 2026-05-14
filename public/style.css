@@ -1244,7 +1244,14 @@ footer        { padding-left: calc(210px + 2.5rem); }
 }
 .nav-item:hover { background: var(--primary-light); color: var(--primary); }
 .nav-item.active { background: var(--primary-light); color: var(--primary); }
-.nav-icon { font-size: 1.3rem; line-height: 1; }
+.nav-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  height: 1.45rem;          /* fixed height — same as .cal-nav-icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .nav-label { font-size: 0.65rem; font-weight: 700; text-align: center; line-height: 1.2; }
 
 /* Mini calendar icon in the nav (appointments item) */
@@ -1555,7 +1562,7 @@ footer         { padding-right: calc(76px + 2.5rem); }
     box-shadow: 0 -2px 16px rgba(26,143,209,0.08);
   }
   .nav-item { padding: 0.5rem 0.3rem; flex: 1; justify-content: center; }
-  .nav-icon  { font-size: 1.15rem; }
+  .nav-icon  { font-size: 1.15rem; height: 1.3rem; } /* match mobile cal-nav-icon height */
   .nav-label { font-size: 0.55rem; }
 
   /* Reset all sidebar paddings so content uses full width */
