@@ -1,5 +1,14 @@
 'use strict';
 
+// ── Nav calendar icon: show today's date, update at midnight ───────────────
+(function updateCalNavDay() {
+  const el = document.getElementById('cal-nav-day');
+  if (el) el.textContent = new Date().getDate();
+  const now = new Date();
+  const msTillMidnight = +new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) - now;
+  setTimeout(updateCalNavDay, msTillMidnight);
+})();
+
 let config = {};
 let appointments = [];
 let chores = [];
